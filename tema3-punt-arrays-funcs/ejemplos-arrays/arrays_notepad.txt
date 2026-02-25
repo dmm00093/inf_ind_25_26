@@ -1,0 +1,174 @@
+// 1: Programa basico: crear array, leer array, modificar array.
+
+#include <stdio.h>
+
+int main () 
+{
+    int numbers [] = {0, 1, 2, 3, 4};
+
+    int i; 
+    
+    printf("Listado de elementos: \n");
+    
+    for (i=0 ; i < 5 ; i++)
+    {
+        printf ("Numero %d : %d\n", i, numbers[i]);
+    }
+    
+    printf("\n");
+    
+    printf("Cambio de elementos: \n");
+    numbers[0] = 10; printf("Primer elemento: %d\n", numbers[0]);
+    numbers[4] = 50; printf("Ultimo elemento: %d\n", numbers[4]);
+    
+    printf("\n");
+    
+    printf("Listado de nuevo array: \n");
+
+    for (i=0 ; i<5 ; i++) 
+    {
+        printf("Numero %d, %d\n", i, numbers[i]);
+    }
+    
+    return 0;
+}
+// *************************************************************
+
+// 2: Programa que lee un array con scanf y lo imprime.
+
+#include <stdio.h>
+
+int main ()
+{
+    int array [5]; // definimos array
+
+    int i;
+
+    printf("Escriba los numeros del array: \n");
+
+    for (i=0 ; i<5 ; i++) // un bucle for con scanf, cuidado, delimitar bien.
+    {
+        printf("Numero %d: ", i);
+        scanf("%d", &array[i]); // Lee numero y lo mete al array. Esto no es seguro, puede rebosar
+        // hay que usar otra cosa pero por ahora, esto sirve.
+
+        // Si te das cuenta, scanf utiliza la direccion de memoria para leer. Mucho cuidado, punteros.
+    }
+
+    printf("\n");
+
+    printf("Aquí está tu array:\n");
+
+    for (i=0 ; i<5; i++)
+    {
+        printf("Numero %d : %d\n", i, array[i]); //
+    }
+
+    return 0;
+}
+// *************************************************************
+
+// 3 - Escribe un programa en C para leer n valores en un array y mostrarlos en orden inverso.
+
+#include <stdio.h>
+
+int main ()
+{
+    printf ("Escriba la longitud del array: ");
+
+    int l; scanf("%d", &l); int array [l]; // Escaneamos longitud aray. Asignamos longitud a ese array.
+
+    printf("Longitud de array: %d\n", l); printf("\n"); // Se puede poner \n al principio de un printf.
+                                                        // Asi evitamos tanto printf.
+
+    printf("Escriba su array: \n");
+
+    for (int i = 0 ; i < l ; i++) // Preguntamos al usuario que introduzca los numeros del array.
+    {
+        printf("Numero %d: ", i);
+        scanf("%d", &array [i]);
+    }
+
+    printf("Array normal: \n");
+
+    for (int i = 0 ; i < l ; i++)
+    {
+        printf("|| Numero %d: %d || ", i, array [i]); // Escribimos array normal
+    }
+
+    printf("\n"); printf("Array inverso:\n");
+
+    int x;
+    for (int i = 0 ; i < l ; i++)
+    {
+        x = (l-i)-1; // La longitud-1 sera nuestra nueva i, ya que cuenta desde 0, si l es 5, hay que iterar de (5-1) a 0
+        printf("|| Numero %d: %d || ", x, array[x]); // igual
+    }
+
+    /* Podemos también utilizar un bucle diferente para nuestro bucle inverso:
+
+    printf("Array inverso:\n");
+
+    for (int i = l - 1; i >= 0; i--)
+    {
+        printf("|| Numero %d: %d || ", i, array[i]);
+    }
+
+    */
+
+    return 0;
+}
+// *************************************************************
+
+// 4 - Programa que realize la suma de todos los elementos de un array
+
+#include <stdio.h>
+
+int main () {
+
+    // Bloque Lectura:
+	// Deberia hacerse una funcion.
+
+    printf ("Escriba la longitud del array:");
+
+    int l; scanf("%d", &l);
+
+        if (l <= 0) // Aseguremos un array válido.
+        {
+                printf("ERR1: longitud NO puede ser %d\n", l); // aseguramos que sea valido
+                return 1;
+        }
+
+    int array [l]; // Escaneamos longitud aray. Asignamos longitud a ese array.
+
+    printf("Longitud de array: [%d]\n", l);
+
+    printf("Escriba su array: \n");
+
+    for (int i = 0 ; i < l ; i++) // Preguntamos al usuario que introduzca los numeros del array.
+    {
+        printf("Numero %d: ", i);
+        scanf("%d", &array [i]);
+    }
+
+    // Bloque Suma (Nuevo)
+
+    int x = 0;
+
+    for (int i = 0 ; i < l ; i++)
+    {
+        x = x + array [i]; // pues almacenamos una variable nueva que inicia en 0 y se suma recursivamente
+    }
+
+    printf("Tu array es:\n["); // boom shaka laka. podemos jugar con los \n y los textos para dejarlo bonito
+
+    for (int i = 0 ; i < l ; i++)
+    {
+        printf(" %d ", array[i]); // lista espaciada dentro de [
+    }
+
+    printf ("]\nLa suma de sus miembros es: %d", x); // termina la lista y ponemos el ] final y \n y texto nuevo de suma.
+                                                     // se puede jugar mucho con los printf y los \n. boom shaka laka.
+    return 0;
+}
+// *************************************************************

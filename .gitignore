@@ -1,0 +1,10 @@
+# Excluimos ficheros basura:
+    *.o
+    *.exe
+    build/
+    .DS_Store
+
+
+# Carpetas innecesarias
+    cmake-build-debug/
+    .idea/
