@@ -14,7 +14,7 @@
 
 
 /*
-* Parte A: Menú mínimo + lectura robusta
+* Parte A: Menu mínimo + lectura robusta
 * Implementar leer_entero , leer_float , leer_cadena
 * Menú con switch usando leer_entero
 */

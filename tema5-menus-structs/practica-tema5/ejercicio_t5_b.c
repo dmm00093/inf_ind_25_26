@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
-
 typedef struct { // Hay que iniciar structs, primero de todo.
     int id;
     char nombre [32];
