@@ -13,3 +13,6 @@ add_executable(array1 tema3-punt-arrays-funcs/ejemplos-arrays/array1_basico.c)
 add_executable(array2 tema3-punt-arrays-funcs/ejemplos-arrays/array2_leer.c)
 add_executable(array3 tema3-punt-arrays-funcs/ejemplos-arrays/array3_inverso.c)
 add_executable(array4 tema3-punt-arrays-funcs/ejemplos-arrays/array4_suma_elems.c)
+
+add_executable(ejercicio_t5_A tema5-menus-structs/practica-tema5/ejercicio_t5_a.c)
+add_executable(ejercicio_t5_B tema5-menus-structs/practica-tema5/ejercicio_t5_b.c)
