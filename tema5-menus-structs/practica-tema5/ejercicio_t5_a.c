@@ -4,6 +4,7 @@
 #include <string.h>
 #include <windows.h>
 
+// CLION -> EDIT CONFIGURATIONS -> EMULATE TERMINAL IN THE OUTPUT CONSOLE
 #define RED     "\033[1;31m"
 #define GREEN   "\033[1;32m"
 #define YELLOW  "\033[1;33m"
@@ -11,7 +12,7 @@
 #define MAGENTA "\033[1;35m"
 #define CYAN    "\033[1;36m"
 #define RESET   "\033[0m"
-
+// Si no, no funcionan los colores
 
 /*
 * Parte A: Menu mínimo + lectura robusta
@@ -69,13 +70,16 @@ int leer_entero (const char *input, int *output)
 } // Leemos entero con fgets y strtol. output 0 -> BIEN.
                                                       // output =/= 0 -> MAL.
 
+
+
 int leer_float (const char *input, float *output)
 {
     char buf[128]; // Igual que antes.
 
     printf ("%s", input);
 
-    fgets(buf, sizeof(buf), stdin); size_t len = strlen (buf);
+    fgets(buf, sizeof(buf), stdin);
+    size_t len = strlen (buf);
 
         if (len > 0 && buf[len-1] == '\n')
         {
@@ -95,7 +99,7 @@ int leer_float (const char *input, float *output)
     por ejemplo, con 123.45abc, endptr detecta abc, sabes que hay basura. NULL le daria igual :)
     */
 
-    if (errno !=0 && *finptr != '\0') //  - errno != 0 → número demasiado grande o pequeño
+    if (errno != 0 && *finptr != '\0') //  - errno != 0 → número demasiado grande o pequeño
                                       //  - *finptr != '\0' → hay basura después del número
     {
         printf("Entrada no valida.");
@@ -105,8 +109,12 @@ int leer_float (const char *input, float *output)
     /*Tan pronto como encuentra un carácter que no puede interpretar
     (por ejemplo una letra que no sea parte de la notación científica) → se detiene*/
 
-    *output = val; return 0;
+    *output = val;
+    return 0;
+
 } // Leemos float con fgets y luego strtof.
+
+
 
 int leer_cadena (const char *input, char *output, size_t max_len)
 {
@@ -130,6 +138,8 @@ int leer_cadena (const char *input, char *output, size_t max_len)
 
     return 0;
 } // Leemos un string.
+
+
 
 int main()
 {
