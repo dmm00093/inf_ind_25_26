@@ -152,7 +152,7 @@ int main ()
         // &nProds ya que usamos paso por referencia y vamos a editar su valor directamente en memoria, no copiamos.
     }
 
-    printf("...................\nMostrando nuevo listado\n...................");
+    printf(".......................\nMostrando nuevo listado\n.......................");
 
     listar_productos(maquina, nProds); // volvemos a listar.
 }
