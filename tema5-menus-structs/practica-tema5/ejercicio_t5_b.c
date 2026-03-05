@@ -138,13 +138,13 @@ int main ()
     int numAdd;
     int testAdd = leer_entero("Cuantos productos deseas adicionar: ", &numAdd);
 
-        if (testAdd != 0 && numAdd + nProds > MAXPRODS)
+        if (testAdd != 0 || numAdd + nProds > MAXPRODS || numAdd == 0)
         {
-            printf("Error: no valido. Comprobar capacidad maxima.\n");
+            printf("Error: no valido.\n");
             return -1;
         }
 
-    for (int i = 0 ; i <= numAdd; i++)
+    for (int i = 1 ; i <= numAdd; i++)
     {
         printf("Especifique su producto n: %d\n", i);
         alta_producto(maquina, &nProds, MAXPRODS); // Definimos MAXPRODS al inicio como constante. Es una maquina.
@@ -152,7 +152,7 @@ int main ()
         // &nProds ya que usamos paso por referencia y vamos a editar su valor directamente en memoria, no copiamos.
     }
 
-    printf("Mostrando nuevo listado: \n");
+    printf("...................\nMostrando nuevo listado\n...................");
 
     listar_productos(maquina, nProds); // volvemos a listar.
 }
