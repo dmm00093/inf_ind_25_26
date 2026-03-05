@@ -7,6 +7,7 @@ set(CMAKE_C_STANDARD 17)
 include_directories(lib)
 
 add_executable(lectura_lib lib/lectura.c)
+add_executable(productos_lib lib/productos.c)
 
 add_executable(ejercicio1 tema3-punt-arrays-funcs/ejercicios-entrega-t3/ejercicio1.c)
 add_executable(ejercicio2 tema3-punt-arrays-funcs/ejercicios-entrega-t3/ejercicio2.c)
@@ -24,3 +25,8 @@ add_executable(ejercicio_t5_A tema5-menus-structs/practica-tema5/ejercicio_t5_a.
 add_executable(ejercicio_t5_B tema5-menus-structs/practica-tema5/ejercicio_t5_b.c
                lib/lectura.c
               )
+# Programa + Librerias
+add_executable(maquina_expendedora tema5-menus-structs/ej-maquina-exp/maquina_expend.c
+               lib/lectura.c
+               lib/productos.c
+)

@@ -25,6 +25,8 @@ static void listar_productos (const Producto *arr, int n) // hay que pasar tódo
     {
         imprimir_producto (arr[i]); // vemos cada subproducto en el array definido en main (maquina, por ej)
     }
+    printf("|-------------------------------------------------|\n");
+
 }
 
 static void alta_producto (Producto *arr, int *n, int max)
@@ -75,6 +77,20 @@ static void alta_producto (Producto *arr, int *n, int max)
         (*n)++; // Incrementamos el numero de productos ya que hemos metido uno nuevo.
 }
 
+int buscar_indice_por_id (Producto *arr, int n, int id)
+{
+    for (int i = 0; i <= n; i++) {
+        if (arr[i].id == id) {
+            printf("La [ID: %d] corresponde al indice [%d] del producto: [%s].\n",
+                          arr[i].id, i, arr[i].nombre);
+            return id;
+        }
+
+    }
+    printf("No se encuentra.");
+    return -1;
+}
+
 int main ()
 {
     // Definimos todos los productos.
@@ -123,8 +139,18 @@ int main ()
 
     listar_productos(maquina, nProds); // con ese array mostramos los productos con la funcion.
 
+    int opcionB;
+    int testopB = leer_entero("\nBusque la ID que desee: ", &opcionB);
+
+    if (testopB != 0) {
+        printf("Error: no valido.");
+        return -1;
+    }
+
+    buscar_indice_por_id(maquina, nProds, opcionB);
+
     int opcion;
-    int testop = leer_entero("Desea adicionar productos?\n1) Continuar\n0) Salir\n-->", &opcion);
+    int testop = leer_entero("\nDesea adicionar productos?\n1) Continuar\n0) Salir\n-->", &opcion);
 
         if (testop != 0) {
             printf("Error: no valido.");
@@ -138,10 +164,14 @@ int main ()
     int numAdd;
     int testAdd = leer_entero("Cuantos productos deseas adicionar: ", &numAdd);
 
-        if (testAdd != 0 || numAdd + nProds > MAXPRODS || numAdd == 0)
+        if (testAdd != 0 || numAdd + nProds > MAXPRODS)
         {
             printf("Error: no valido.\n");
             return -1;
+        }
+
+        else if (numAdd == 0) {
+            printf("Abandonando menu...");
         }
 
     for (int i = 1 ; i <= numAdd; i++)
