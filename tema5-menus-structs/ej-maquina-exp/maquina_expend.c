@@ -83,7 +83,7 @@ int buscar_indice_por_id (Producto *arr, int n, int id)
         }
 
     }
-    printf("No se encuentra.");
+    printf("No se encuentra.\n");
     return -1;
 }
 
