@@ -75,21 +75,21 @@ static void alta_producto (Producto *arr, int *n, int max)
 
 int buscar_indice_por_id (Producto *arr, int n, int id)
 {
-    for (int i = 0; i <= n; i++) {
+    for (int i = 0; i < n; i++) {
         if (arr[i].id == id) {
             printf("La [ID: %d] corresponde al indice [%d] del producto: [%s].\n",
                           arr[i].id, i, arr[i].nombre);
-            return id;
+            return i;
         }
-
     }
+
     printf("No se encuentra.\n");
     return -1;
 }
 
 static void modificar_producto (Producto *arr, int *n, int id)
 {
-    for (int i = 0 ; i < n ; i++) {
+    for (int i = 0 ; i < *n ; i++) {
         if (arr[i].id == id)
         {
             printf("\nProducto seleccionado:\n");
@@ -102,7 +102,7 @@ static void modificar_producto (Producto *arr, int *n, int id)
                 return;
             }
 
-            int nomTest = leer_cadena("Introduzca el nuevo nombre: ", &arr[i].nombre, strlen(arr->nombre));
+            int nomTest = leer_cadena("Introduzca el nuevo nombre: ", arr[i].nombre, 32);
             if (nomTest != 0) {
                 printf("Error: Entrada invalida.");
                 return;
@@ -212,13 +212,12 @@ int main()
 
                 for (int i = 1 ; i <= opcion2; i++)
                 {
-                    printf("\nEspecifique su producto n: %d\n", i);
+                    printf("\nEspecifique su producto numero: %d\n", i);
                     alta_producto(maquina, &nProds, MAXPRODS); // Definimos MAXPRODS al inicio como constante. Es una maquina.
 
                     // &nProds ya que usamos paso por referencia y vamos a editar su valor directamente en memoria, no copiamos.
                 }
 
-                alta_producto(maquina, &nProds, MAXPRODS);
                 break;
             }
 
