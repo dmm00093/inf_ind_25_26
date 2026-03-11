@@ -28,5 +28,4 @@ add_executable(ejercicio_t5_B tema5-menus-structs/practica-tema5/ejercicio_t5_b.
 # Programa + Librerias
 add_executable(maquina_expendedora tema5-menus-structs/ej-maquina-exp/maquina_expend.c
                lib/lectura.c
-               lib/productos.c
 )
