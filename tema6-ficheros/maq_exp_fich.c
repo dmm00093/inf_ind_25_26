@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "lectura.h"
+#include <string.h>
 #include <windows.h> // LIBRERIA COLORES
 
 // CLION -> EDIT CONFIGURATIONS -> EMULATE TERMINAL IN THE OUTPUT CONSOLE
@@ -143,7 +144,7 @@ static void modificar_producto (Producto *arr, int *n, int id)
 
 // Funciones Ficheros //
 /********************************************/
-int cargar_texto(const char *ruta, Producto *arr, int cap, int *out_n)
+/* int cargar_texto(const char *ruta, Producto *arr, int cap, int *out_n) // Hecha con TOKENS. Deprecada
 {
     FILE *f = fopen(ruta, "r");
     if (!f) return 1;
@@ -200,6 +201,44 @@ int cargar_texto(const char *ruta, Producto *arr, int cap, int *out_n)
 
     *out_n = n;
     return 0;
+}*/
+
+int cargar_texto(const char *ruta, Producto *arr, int cap, int *out_n)
+{
+    FILE *f = fopen(ruta, "r"); // Abrir fichero, estandar.
+    if (!f) return 1; // Si no se puede abrir pues devolvemos un 1. Esto significa ERROR (para main).
+
+    char linea [256]; // Creamos linea para guardar el array de 256 chars max.
+    int n = 0; // n es el límite de parámetros, es decir, será 4 al final ya que son 4 parámetros en struct.
+
+    while (n < cap && fgets(linea, sizeof(linea), f))
+    {
+        // if para quitar \n al final.
+        size_t L = strlen(linea);
+        if (L && linea[L-1] == '\n')
+        {
+            linea[L-1] = '\0';
+        }
+
+        // Ahora parseamos con sscanf. Como no editamos nada y le decimos exactamente como guardar
+        // Pues no pasa nada. Ya que no hay posibilidad de error... nosotros no guardamos manualmente.
+        // No tenemos que usar ninguna funcion extravagante.
+
+        Producto pTemp; // Creamos un producto temporal por si sscanf falla.
+
+        // ptemp puede ser: ptemp = {2, "Coca-Cola", 1.50, 5}. Si no falla, bien, si falla, pues, nos ahorramos meter basura
+        // Y una vez tenemos eso, dentro de mi array de productos pues metemos esa p en mi posicion arr[n], que tiene n++
+        // Entonces pues copiamos ese array temporal ahi dentro
+        // Frase de la ia para entenderlo: p es un molde reutilizable que se rellena y se copia al array.
+
+        if (sscanf(linea, "%d;%31[^;];%f;%d", &pTemp.id, pTemp.nombre, &pTemp.precio, &pTemp.stock) == 4)
+        {
+            arr[n++] = pTemp;
+        }
+    } fclose(f); // Cerramos fichero.
+
+    *out_n = n;
+    return 0;
 }
 
 int guardar_texto(const char *ruta, const Producto *arr, int n)
@@ -217,45 +256,12 @@ int guardar_texto(const char *ruta, const Producto *arr, int n)
 }
 /********************************************/
 
+// Cuerpo de Programa //
+/********************************************/
 int main()
 {
-    Producto prod0 = {
-        .id = 0,
-        .nombre = "Coca-Cola",
-        .precio = 2.0,
-        .stock = 15
-    };
-
-    Producto prod1 = {
-        .id = 1,
-        .nombre = "Pepsi",
-        .precio = 2.00f,
-        .stock = 12
-    };
-
-    Producto prod2 = {
-        .id = 2,
-        .nombre = "Snickers",
-        .precio = 1.50f,
-        .stock = 20
-    };
-
-    Producto prod3 = {
-        .id = 3,
-        .nombre = "Chicles",
-        .precio = 0.75f,
-        .stock = 30
-    };
-
-    Producto prod4 = {
-        .id = 4,
-        .nombre = "Agua 500ml",
-        .precio = 1.25f,
-        .stock = 25
-    };
-
-    int nProds = 5;
-    Producto maquina [MAXPRODS] = {prod0, prod1, prod2, prod3, prod4};
+    Producto maquina [MAXPRODS] = {0};
+    int nProds = 0;
 
     int opcionMenu;
     do
@@ -295,9 +301,8 @@ int main()
             }
 
             case 2: {
-                int nprods2;
                 printf("\nCargando productos...\n");
-                if (cargar_texto("data/productos.txt", maquina, 256, &nprods2) == 0) {
+                if (cargar_texto("../tema6-ficheros/data/productos.txt", maquina, MAXPRODS, &nProds) == 0) {
                     printf("Cargado exitoso");
                 }
                 else printf("Error de carga.");
