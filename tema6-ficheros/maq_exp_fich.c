@@ -144,64 +144,8 @@ static void modificar_producto (Producto *arr, int *n, int id)
 
 // Funciones Ficheros //
 /********************************************/
-/* int cargar_texto(const char *ruta, Producto *arr, int cap, int *out_n) // Hecha con TOKENS. Deprecada
-{
-    FILE *f = fopen(ruta, "r");
-    if (!f) return 1;
 
-    char linea [256]; int n = 0;
-
-    while (n < cap && fgets(linea, sizeof(linea), f))
-    {
-        // if para quitar \n al final.
-        size_t L = strlen(linea);
-        if (L && linea[L-1] == '\n')
-        {
-            linea[L-1] = '\0';
-        }
-
-        // Leemos la cadena entera. Usaremos strtok_r porque sscanf es malo.
-
-        char *auxptr; // Puntero auxiliar para que strtok sepa por donde va.
-        char *token = strtok_r(linea, ";", &auxptr); // Primer token, es decir.
-
-        // "15;Choco;83.23;24" -> primer token es 15. Para en ;. auxptr le dira en el siguiente caso que va por ahi.
-        // Luego, la siguiente llamada, tiene NULL como primer arg, porque ya no necesita abrir nada. Entonces sigue
-        // Asi hasta que llegue a \0, es decir, NULL.
-
-        int opcion = 0;
-        while (token != NULL) // Hasta que termine la linea.
-        {
-            switch (opcion)
-            {
-                case 0: arr[n].id = atoi (token); // Convertimos esa parte del array a un int, float, str...
-                    break;                  // El token pasa a ser parte del struct.
-                case 1: strcpy(arr[n].nombre, token);
-                    break;
-                case 2: arr[n].precio = atof (token);
-                    break;
-                case 3: arr[n].stock = atoi (token);
-                    break;
-                default: printf("Error: fallo de lectura.");
-                    return -1;
-            }
-            opcion++;
-            token = strtok_r (NULL, ";", &auxptr);
-        }
-
-        if (opcion !=4)
-        {
-            printf("Error: linea incompleta");
-            return -1;
-        }
-        n++;
-    }
-
-    fclose(f);
-
-    *out_n = n;
-    return 0;
-}*/
+// De cara a futuro: implementar cargar_texto con strtok_r, no necesario, pero mas seguro, buen ejercicio.
 
 int cargar_texto(const char *ruta, Producto *arr, int cap, int *out_n)
 {
