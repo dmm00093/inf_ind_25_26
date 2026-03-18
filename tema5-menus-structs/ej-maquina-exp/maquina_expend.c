@@ -1,10 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-
 #include "lectura.h"
-//#include "../../lib/productos.h"
-#define MAXPRODS 15
+#include <windows.h> // LIBRERIA COLORES
+
+// CLION -> EDIT CONFIGURATIONS -> EMULATE TERMINAL IN THE OUTPUT CONSOLE
+#define RED     "\033[1;31m"
+#define GREEN   "\033[1;32m"
+#define YELLOW  "\033[1;33m"
+#define BLUE    "\033[1;34m"
+#define MAGENTA "\033[1;35m"
+#define CYAN    "\033[1;36m"
+#define RESET   "\033[0m"
+// Si no, no funcionan los colores
+
+/***********************************/
+#define MAXPRODS 15 // Maximo Productos
 
 typedef struct { // Hay que iniciar structs, primeramente
     int id;
@@ -12,6 +22,7 @@ typedef struct { // Hay que iniciar structs, primeramente
     float precio;
     int stock;
 } Producto; // Nombre del struct
+/********************************************/
 
 static void imprimir_producto(const Producto prod) // ver main, definimos prod como subproductos
 {
@@ -170,13 +181,13 @@ int main()
     {
 
         printf("\n+--------------------------+\n");
-        printf("|       MAQUINA EXPENDEDORA |\n");
+        printf("|   " YELLOW " MAQUINA EXPENDEDORA" RESET "   |\n");
         printf("+--------------------------+\n");
-        printf("| 1 - Listar Productos      |\n");
-        printf("| 2 - Anadir Productos      |\n");
-        printf("| 3 - Modificar Productos   |\n");
-        printf("| 4 - Buscar Producto       |\n");
-        printf("| 0 - Salir                 |\n");
+        printf("| "MAGENTA"1 - Listar Productos"RESET"     |\n");
+        printf("| "MAGENTA"2 - Anadir Productos"RESET"     |\n");
+        printf("| "MAGENTA"3 - Modificar Productos"RESET"  |\n");
+        printf("| "MAGENTA"4 - Buscar Producto"RESET"      |\n");
+        printf("| "RED"0 - Salir"RESET"                |\n");
         printf("+--------------------------+\n");
 
         int opcionTest = leer_entero("\nIntroduzca su opcion: ", &opcionMenu);

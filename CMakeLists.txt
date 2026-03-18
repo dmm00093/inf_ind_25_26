@@ -29,3 +29,7 @@ add_executable(ejercicio_t5_B tema5-menus-structs/practica-tema5/ejercicio_t5_b.
 add_executable(maquina_expendedora tema5-menus-structs/ej-maquina-exp/maquina_expend.c
                lib/lectura.c
 )
+
+add_executable(maq_exp_ficheros tema6-ficheros/maq_exp_fich.c
+                lib/lectura.c
+)
