@@ -1,4 +1,3 @@
-#include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "lectura.h"
@@ -144,7 +143,6 @@ static void modificar_producto (Producto *arr, int *n, int id)
 
 // Funciones Ficheros //
 /********************************************/
-
 // De cara a futuro: implementar cargar_texto con strtok_r, no necesario, pero mas seguro, buen ejercicio.
 
 int cargar_texto(const char *ruta, Producto *arr, int cap, int *out_n)
@@ -173,7 +171,7 @@ int cargar_texto(const char *ruta, Producto *arr, int cap, int *out_n)
         // ptemp puede ser: ptemp = {2, "Coca-Cola", 1.50, 5}. Si no falla, bien, si falla, pues, nos ahorramos meter basura
         // Y una vez tenemos eso, dentro de mi array de productos pues metemos esa p en mi posicion arr[n], que tiene n++
         // Entonces pues copiamos ese array temporal ahi dentro
-        // Frase de la ia para entenderlo: p es un molde reutilizable que se rellena y se copia al array.
+        // p es un molde reutilizable que se rellena y se copia al array.
 
         if (sscanf(linea, "%d;%31[^;];%f;%d", &pTemp.id, pTemp.nombre, &pTemp.precio, &pTemp.stock) == 4)
         {
@@ -210,7 +208,6 @@ int main()
     int opcionMenu;
     do
     {
-
         printf("\n.--------------------------.\n");
         printf("|   " YELLOW " MAQUINA EXPENDEDORA" RESET "   |\n");
         printf(".--------------------------.\n");
@@ -227,13 +224,11 @@ int main()
 
         if (opcionTest != 0) {
             printf("\nOpcion invalida. Saliendo...\n");
-            system("pause");
             break;
         }
 
         switch (opcionMenu)
         {
-
             case 1: {
                 printf("\nGuardando productos...\n");
 
