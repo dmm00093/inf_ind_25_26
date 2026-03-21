@@ -3,6 +3,7 @@
 #include "lectura.h"
 #include <string.h>
 #include <windows.h> // LIBRERIA COLORES
+#include <direct.h>
 
 // CLION -> EDIT CONFIGURATIONS -> EMULATE TERMINAL IN THE OUTPUT CONSOLE
 #define RED     "\033[1;31m"
@@ -183,15 +184,50 @@ int cargar_texto(const char *ruta, Producto *arr, int cap, int *out_n)
     return 0;
 }
 
+int cargar_binario(const char *ruta_input, char *ruta_output)
+{
+    // ruta input es predefinida. ruta output es dinamica, nos dira donde está para que el programa lo use.
+    FILE *f = fopen(ruta_input, "rb");
+
+    if (!f) {
+        //No se pudo cargar ruta.
+        return 1;
+    }
+
+    fread(ruta_output, sizeof(char), 256, f); // leemos ruta salida
+
+    fclose(f);
+
+    return 0;
+}
+
 int guardar_texto(const char *ruta, const Producto *arr, int n)
 {
     FILE *f = fopen(ruta, "w");
-    if (!f) return 1;
+    if (!f) {
+        perror("ERROR. Motivo de fallo: ");
+        return 1;
+    }
 
     for (int i = 0 ; i < n; i++) {
         fprintf(f, "%d;%s;%.2f;%d\n",
                 arr[i].id, arr[i].nombre, arr[i].precio, arr[i].stock);
     }
+
+    fclose(f);
+    return 0;
+}
+
+int guardar_binario(const char *ruta_input, char *ruta_output)
+{
+    FILE *f = fopen(ruta_input, "wb"); // apertura en binario write
+
+    if (!f) {
+        printf("No se pudo cargar. "); perror("Error:");
+        return 1;
+    }
+
+    fwrite(ruta_output, sizeof(char), 256, f); // igual que cargar con fwrite y wb.
 
     fclose(f);
     return 0;
@@ -205,6 +241,22 @@ int main()
     Producto maquina [MAXPRODS] = {0};
     int nProds = 0;
 
+    // Iniciamos configuracion antes de cargar menu
+    char ruta_config [256] = "../cfg/config.bin"; // Alocamos ruta del config para cambiarla a nuestro gusto.
+    char ruta_config_out [256] = {0}; // Array sin basura, vacio con solo \0.
+
+    printf(BLUE"/**************************************************/\n\n"RESET);
+    printf(YELLOW"Iniciando Programa...\n"RESET);
+    printf("Cargando configuracion...\n");
+
+    if (cargar_binario(ruta_config, ruta_config_out) == 0) {
+        printf(GREEN"\nCargado exitoso.\n"RESET);
+        printf("Ruta actual: "); printf(BLUE"%s\n\n"RESET, ruta_config_out);
+    }
+    else printf(RED"\nNo se encontro ruta productos."RESET" Configure en el menu.\n\n");
+
+    printf(BLUE"/**************************************************/\n"RESET);
+
     int opcionMenu;
     do
     {
@@ -217,6 +269,10 @@ int main()
         printf("| "MAGENTA"4 - Anadir Productos"RESET"     |\n");
         printf("| "MAGENTA"5 - Modificar Productos"RESET"  |\n");
         printf("| "MAGENTA"6 - Buscar Producto"RESET"      |\n");
+        printf("| "GREEN"7 - Cargar Configuracion"RESET" |\n");
+        printf("| "GREEN"8 - Crear Configuracion"RESET"  |\n");
+        printf("| "GREEN"9 - Editar Configuracion"RESET" |\n");
+        printf("| "GREEN"10 - Ver Configuracion   "RESET"|\n");
         printf("| "RED"0 - Salir"RESET"                |\n");
         printf(".--------------------------.\n");
 
@@ -232,19 +288,19 @@ int main()
             case 1: {
                 printf("\nGuardando productos...\n");
 
-                if (guardar_texto("../tema6-ficheros/data/productos.txt", maquina, nProds) == 0) {
-                    printf("Guardado exitoso.");
+                if (guardar_texto(ruta_config_out, maquina, nProds) == 0) {
+                    printf("Guardado exitoso.\n");
                 }
-                else printf("Error de guardado.");
+                else printf("Error de guardado.\n");
                 break;
             }
 
             case 2: {
                 printf("\nCargando productos...\n");
-                if (cargar_texto("../tema6-ficheros/data/productos.txt", maquina, MAXPRODS, &nProds) == 0) {
-                    printf("Cargado exitoso");
+                if (cargar_texto(ruta_config_out, maquina, MAXPRODS, &nProds) == 0) {
+                    printf("Cargado exitoso\n");
                 }
-                else printf("Error de carga.");
+                else printf("Error de carga.\n");
                 break;
             }
 
@@ -304,6 +360,83 @@ int main()
                 }
 
                 buscar_indice_por_id(maquina, nProds, opcion4);
+                break;
+            }
+
+            case 7: {
+                printf("\nCargando config.bin...\n");
+
+                if (cargar_binario(ruta_config, ruta_config_out) == 0) {
+                    printf(GREEN"\nCargado exitoso.\n"RESET);
+                    printf("Ruta actual: "); printf(BLUE"%s\n"RESET, ruta_config_out);
+                }
+
+                else
+                {
+                    printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n");
+                }
+                break;
+            }
+
+            case 8: {
+
+                printf("\nCreador de configuracion\n");
+
+                int testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+                if (testRuta != 0) {
+                    printf("Error: no valido.\n");
+                    return -1;
+                }
+
+                if (guardar_binario(ruta_config, ruta_config_out) == 0) {
+                    printf("\nGuardado exitoso.\n");
+                    printf("Ruta actual: "); printf(BLUE"%s\n"RESET, ruta_config_out);
+                }
+
+                else {
+                    printf("\nError en guardado. Saliendo...");
+                }
+                break;
+            }
+
+            case 9: {
+
+                printf("\nEditor de configuracion\n");
+
+                if (cargar_binario(ruta_config, ruta_config_out) != 0)
+                {
+                    printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n");
+                    break;
+                }
+
+                int testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+                if (testRuta != 0) {
+                    printf("Error: no valido.\n");
+                    return -1;
+                }
+
+                if (guardar_binario(ruta_config, ruta_config_out) == 0) {
+                    printf("\nGuardado exitoso.\n");
+                    printf("Ruta actual: "); printf(BLUE"%s\n"RESET, ruta_config_out);
+                }
+
+                else {
+                    printf("\nError en guardado. Saliendo...");
+                }
+
+                break;
+            }
+
+            case 10: {
+                if (cargar_binario(ruta_config, ruta_config_out) == 0) {
+                    printf("Ruta actual: "); printf(BLUE"%s\n"RESET, ruta_config_out);
+                }
+
+                else
+                {
+                    printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n");
+                }
+
                 break;
             }
 
