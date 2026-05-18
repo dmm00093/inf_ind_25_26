@@ -3,7 +3,6 @@
 #include "lectura.h"
 #include <string.h>
 #include <windows.h> // LIBRERIA COLORES
-#include <direct.h>
 
 // CLION -> EDIT CONFIGURATIONS -> EMULATE TERMINAL IN THE OUTPUT CONSOLE
 #define RED     "\033[1;31m"
