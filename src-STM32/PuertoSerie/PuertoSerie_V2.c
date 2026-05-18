@@ -159,32 +159,76 @@ void ListarPuertosSerie () {
     SetupDiDestroyDeviceInfoList(idTemp); // limpiamos lista para que no hayan fugas de memoria.
 } // Esta funcion lista los puertos disponibles usando setupAPI.
 
-int PedirPuertoSerie () {
+int PedirPuertoSeriei () {
 
     int opcionPuerto;
     int opcionTest = leer_entero("\nIntroduzca el puerto serie deseado: ", &opcionPuerto);
 
     while (opcionTest != 0) {
-        printf("\nOpción inválida.\nIntroduzca el puerto serie deseado: ");
-        opcionTest = leer_entero("\nIntroduzca el puerto serie deseado: ", &opcionTest);
+        opcionTest = leer_entero("\nIntroduzca el puerto serie deseado: ", &opcionPuerto);
     }
 
     return opcionPuerto;
+}
+
+int PedirBaudiosi () {
+
+    int opcionBaudios;
+    int opcionTest = leer_entero("\nIntroduzca los baudios deseados: ", &opcionBaudios);
+
+    while (opcionTest != 0) {
+        opcionTest = leer_entero("\nIntroduzca los baudios deseados: ", &opcionBaudios);
+    }
+
+    return opcionBaudios;
 }
 
 int main() {
 
     SetConsoleOutputCP(1252); // Necesario para que se vean caracteres con tildes (ANSI Latin 1).
 
-    // LISTADO PUERTOS SERIE //
+    // LISTADO Y ELECCIÓN DE PUERTOS SERIE //
 
     ListarPuertosSerie();
 
-    getchar();
+    SetConsoleOutputCP(65001); // Pasamos a UTF-8 despues de usar la funcion con ANSI.
 
-    int UserPort = PedirPuertoSerie();
+    int UserPort = PedirPuertoSeriei();
 
-    printf("\nHa escogido el puerto COM%d\n", UserPort);
+    printf("\nHa escogido el puerto |COM%d|.\n", UserPort);
+
+    // ELECCIÓN DE BAUDIOS //
+
+    printf("\nEscoja la opción de tasa de baudios para la comunicación.\n\n");
+
+    printf("1 -> 1200\n2 -> 2400\n3 -> 4800\n4 -> 9600\n5 -> 19200\n6 -> 38400\n7 -> 57600\n8 -> 115200\n\n");
+
+    int UserBaudsOpcion = PedirBaudiosi();
+    int UserBaudsTasa = 0;
+
+    if (UserBaudsOpcion == 1) {
+        UserBaudsTasa = 1200;
+    } else if (UserBaudsOpcion == 2) {
+        UserBaudsTasa = 2400;
+    } else if (UserBaudsOpcion == 3) {
+        UserBaudsTasa = 4800;
+    } else if (UserBaudsOpcion == 4) {
+        UserBaudsTasa = 9600;
+    } else if (UserBaudsOpcion == 5) {
+        UserBaudsTasa = 19200;
+    } else if (UserBaudsOpcion == 6) {
+        UserBaudsTasa = 38400;
+    } else if (UserBaudsOpcion == 7) {
+        UserBaudsTasa = 57600;
+    } else if (UserBaudsOpcion == 8) {
+        UserBaudsTasa = 115200;
+    } else {
+        // Control de errores por si introducen un número fuera del rango 1-8
+        printf("\nOpción inválida. Asignando 9600 baudios por defecto.\n");
+        UserBaudsTasa = 9600;
+    }
+
+    printf("\nHa escogido la tasa de |%d baudios|.\n\n", UserBaudsTasa);
 
     // MENSAJE, ENVIO //
 
