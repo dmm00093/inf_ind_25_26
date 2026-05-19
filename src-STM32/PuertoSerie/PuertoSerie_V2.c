@@ -211,10 +211,10 @@ void ListarPuertosSerie () {
 int PedirPuertoSeriei () {
 
     int opcionPuerto;
-    int opcionTest = leer_entero("\nIntroduzca el puerto serie (COM) deseado: ", &opcionPuerto);
+    int opcionTest = leer_entero("\nIntroduzca el COM deseado: ", &opcionPuerto);
 
     while (opcionTest != 0) {
-        opcionTest = leer_entero("\nIntroduzca el puerto serie (COM) deseado: ", &opcionPuerto);
+        opcionTest = leer_entero("\nIntroduzca el COM deseado: ", &opcionPuerto);
     }
 
     return opcionPuerto;
@@ -248,7 +248,7 @@ int main() {
 
     printf("\nEscoja la opción de tasa de baudios para la comunicación.\n\n");
 
-    printf("1 -> 1200\n2 -> 2400\n3 -> 4800\n4 -> 9600\n5 -> 19200\n6 -> 38400\n7 -> 57600\n8 -> 115200\n\n");
+    printf("1 -> 1200\n2 -> 2400\n3 -> 4800\n4 -> 9600\n5 -> 19200\n6 -> 38400\n7 -> 57600\n8 -> 115200\n");
 
     int UserBaudsOpcion = PedirBaudiosi();
     int UserBaudsTasa = 0;
@@ -271,11 +271,11 @@ int main() {
         UserBaudsTasa = 115200;
     } else {
         // Control de errores por si introducen un número fuera del rango 1-8
-        printf("\nOpción inválida. Asignando 9600 baudios por defecto.\n");
+        printf(RED"\nOpción inválida."RESET" Asignando 9600 baudios por defecto.\n");
         UserBaudsTasa = 9600;
     }
 
-    printf("\nHa escogido la tasa de |%d baudios|.\n\n", UserBaudsTasa);
+    printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, UserBaudsTasa);
 
     // MENSAJE, ENVIO //
 
