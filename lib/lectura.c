@@ -26,8 +26,8 @@ int leer_entero (const char *input, int *output)
             // ademas evitamos que salte error si hay un espacio al final.
             // isspace comprueba si un caracter es un espacio en blanco.
         {
-            printf("Entrada no valida.\n");
-            return -1;
+            // printf("Entrada no valida.\n");
+            return -1; // Devuelve error.
         }
     }
 
