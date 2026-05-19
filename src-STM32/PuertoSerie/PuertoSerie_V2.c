@@ -12,6 +12,14 @@
 #include <devguid.h>  // Para listar puertos.
 #include "lectura.h"  // Para pedir datos al usuario de forma segura.
 
+#define RED     "\033[1;31m" // Colores ansi.
+#define GREEN   "\033[1;32m"
+#define YELLOW  "\033[1;33m"
+#define BLUE    "\033[1;34m"
+#define MAGENTA "\033[1;35m"
+#define CYAN    "\033[1;36m"
+#define RESET   "\033[0m"
+
 // ---------------------------------------------------------------------------------------------------------------------
 //             ADVERTENCIA: CERRAR CUALQUIER PROGRAMA QUE PUEDA USAR EL COM DE STLINK (CUBEIDE, ETC) Y
 //             NECESARIO  : CARGAR "PuertoSerie_USART_PC.c" O CUALQUIER OTRO PROGRAMA SÍMIL EN EL STM32.
@@ -110,6 +118,8 @@ void ListarPuertosSerie () {
 
     // Listado puertos serie //
 
+    SetConsoleOutputCP(1252);
+
     // Funcion:
     // (https://learn.microsoft.com/es-es/windows/win32/api/setupapi/nf-setupapi-setupdigetclassdevsw)
     // (https://learn.microsoft.com/es-es/windows/win32/api/setupapi/nf-setupapi-setupdigetdeviceregistrypropertya)
@@ -117,9 +127,12 @@ void ListarPuertosSerie () {
 
     // Usamos las librerias setupapi y la libreria devguid (las usa el admin de disps) para obtener nombres de COM.
     // Importante saber que tenemos que linkear la libreria setupapi en CMake para que funcione.
+    // Usamos un bucle while (GetClassDevs) con un if dentro (RegProp (la llamaremos asi, obtener nombre puerto)).
+    // Segun lo que devuelva la funcion if (TRUE o FALSE) sabremos si hay error.
+    // En caso de error, saldrá del bucle while y pondrá nuestro código de error. Si no, continúa.
 
-    uint8_t bufferSetup [5000]; // RegProp necesita un dato tipo PBYTE. Es más seguro usar uint8_t. Microsoft los
-    // inventó hace mucho pero causan fugas de memoria y no son portables.
+    uint8_t bufferSetup [5000]; // RegProp necesita un dato tipo PBYTE. Es más seguro usar uint8_t.
+                                // Microsoft los inventó hace mucho pero causan fugas de memoria y no son portables.
     // https://stackoverflow.com/questions/74401584/about-the-windows-byte-and-pbytes-data-types.
 
     SP_DEVINFO_DATA idDispositivo; // SP_DEVINFO_DATA es TODA la lista de puertos que hay en mi Windows.
@@ -137,8 +150,12 @@ void ListarPuertosSerie () {
     // Cada vez que quieres consultar algo de esa lista, le enseñas el ticket a Windows
 
     int k = 0;
+    int testError = 0;
+
+    printf(GREEN"Mostrando puertos serie\n\n"RESET);
 
     while ((SetupDiEnumDeviceInfo(idTemp, k, &idDispositivo) != 0)) {
+
         // [in]  HDEVINFO         DeviceInfoSet,
         // [in]  DWORD            MemberIndex,
         // [out] PSP_DEVINFO_DATA DeviceInfoData
@@ -146,30 +163,57 @@ void ListarPuertosSerie () {
         // Esta función rellena nuestro struct vacío con datos reales.
         // Tenemos que pasar &idDispositivo para que MODIFIQUE ese parámetro (puntero) -> PASO POR REFERENCIA.
 
-        SetupDiGetDeviceRegistryPropertyA(idTemp, &idDispositivo, SPDRP_FRIENDLYNAME,
-                      NULL, bufferSetup, sizeof(bufferSetup), NULL);
+        if (SetupDiGetDeviceRegistryPropertyA(idTemp, &idDispositivo, SPDRP_FRIENDLYNAME,
+                      NULL, bufferSetup, sizeof(bufferSetup), NULL) != FALSE) {
 
-        // Devuelve en ANSI, A al final de la funcion. Por eso tenemos que codificar a ANSI Latin 1 (1252).
+            // SetupDiGetDeviceRegistryProperty devuelve TRUE si la llamada se realizó correctamente.
+            // De lo contrario, devuelve FALSE, error registrado se puede recuperar mediante una llamada GetLastError.
+            // SetupDiGetDeviceRegistryProperty devuelve el código de error ERROR_INVALID_DATA.
+            // si la propiedad solicitada no existe para un dispositivo o si los datos de propiedad no son válidos.
 
-        printf("Puerto %d -> %s\n", k, bufferSetup);
+            // Caso donde funcione la llamada:
 
-        k++;
+            SetConsoleOutputCP(65001); // UTF-8. Necesario. Usan codificacion diferente... blegh.
+            printf(YELLOW"Opción"); // Se verá bonito en la consola.
+
+            SetConsoleOutputCP(1252); // La funcion devuelve datos codificados en ANSI Latin 1.
+            printf(" %d -> "BLUE"%s\n"RESET, k, bufferSetup); // Se verá igual de bonito.
+        }
+
+        k++; // Incrementamos k para recorrer el siguiente puerto.
+        testError = testError + k;
     }
 
-    SetupDiDestroyDeviceInfoList(idTemp); // limpiamos lista para que no hayan fugas de memoria.
+    if (testError == 0) { // Caso de error, no hay puertos que mostrar o ha fallado la llamada a RegProps.
+
+        SetConsoleOutputCP(65001); // UTF-8.
+
+        printf(RED"Error al obtener los puertos disponibles. Compruebe su configuración.\n"RESET);
+        printf("\nPresione"YELLOW" ENTER"RESET" para salir...");
+
+        SetupDiDestroyDeviceInfoList(idTemp); // Debemos limpiar memoria antes de terminar, siempre.
+
+        GetLastError(); // Mostramos el error obtenido si es que ha habido error en RegProps.
+
+        getchar();
+        exit (1);
+    }
+
+    SetupDiDestroyDeviceInfoList(idTemp); // Limpiamos lista para que no hayan fugas de memoria si ha funcionado.
+
 } // Esta funcion lista los puertos disponibles usando setupAPI.
 
 int PedirPuertoSeriei () {
 
     int opcionPuerto;
-    int opcionTest = leer_entero("\nIntroduzca el puerto serie deseado: ", &opcionPuerto);
+    int opcionTest = leer_entero("\nIntroduzca el puerto serie (COM) deseado: ", &opcionPuerto);
 
     while (opcionTest != 0) {
-        opcionTest = leer_entero("\nIntroduzca el puerto serie deseado: ", &opcionPuerto);
+        opcionTest = leer_entero("\nIntroduzca el puerto serie (COM) deseado: ", &opcionPuerto);
     }
 
     return opcionPuerto;
-}
+} // esa i al final significa que es un int.
 
 int PedirBaudiosi () {
 
@@ -181,21 +225,19 @@ int PedirBaudiosi () {
     }
 
     return opcionBaudios;
-}
+} // // esa i al final significa que es un int.
 
 int main() {
 
-    SetConsoleOutputCP(1252); // Necesario para que se vean caracteres con tildes (ANSI Latin 1).
-
     // LISTADO Y ELECCIÓN DE PUERTOS SERIE //
 
-    ListarPuertosSerie();
+    ListarPuertosSerie(); // Listamos. En la función se usa su propio SetConsoleOutput.
 
     SetConsoleOutputCP(65001); // Pasamos a UTF-8 despues de usar la funcion con ANSI.
 
     int UserPort = PedirPuertoSeriei();
 
-    printf("\nHa escogido el puerto |COM%d|.\n", UserPort);
+    printf(RESET"\nHa escogido el puerto "BLUE"(COM%d).\n"RESET, UserPort);
 
     // ELECCIÓN DE BAUDIOS //
 
