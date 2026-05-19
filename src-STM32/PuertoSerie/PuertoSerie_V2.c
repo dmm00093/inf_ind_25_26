@@ -152,7 +152,7 @@ void ListarPuertosSerie () {
     int k = 0;
     int testError = 0;
 
-    printf(GREEN"Mostrando puertos serie\n\n"RESET);
+    printf(GREEN"Mostrando puertos serie.\n\n"RESET);
 
     while ((SetupDiEnumDeviceInfo(idTemp, k, &idDispositivo) != 0)) {
 
@@ -193,7 +193,12 @@ void ListarPuertosSerie () {
 
         SetupDiDestroyDeviceInfoList(idTemp); // Debemos limpiar memoria antes de terminar, siempre.
 
-        GetLastError(); // Mostramos el error obtenido si es que ha habido error en RegProps.
+        DWORD ErrorMsj = GetLastError(); // Obtenemos el error obtenido si es que ha habido error en RegProps.
+                                         // Double Word, 4 bytes.
+
+        if (ErrorMsj) {
+            printf("Código de error de Windows: "RED" %lu\n"RESET, ErrorMsj); // %lu -> long unsigned
+        }
 
         getchar();
         exit (1);
