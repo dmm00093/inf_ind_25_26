@@ -120,16 +120,17 @@ void ListarPuertosSerie () {
 
     SetConsoleOutputCP(1252);
 
-    // Funcion:
-    // (https://learn.microsoft.com/es-es/windows/win32/api/setupapi/nf-setupapi-setupdigetclassdevsw)
-    // (https://learn.microsoft.com/es-es/windows/win32/api/setupapi/nf-setupapi-setupdigetdeviceregistrypropertya)
-    // (https://learn.microsoft.com/es-es/windows/win32/api/setupapi/nf-setupapi-setupdienumdeviceinfo)
+    /* Funcion:
+    * (https://learn.microsoft.com/es-es/windows/win32/api/setupapi/nf-setupapi-setupdigetclassdevsw)
+    * (https://learn.microsoft.com/es-es/windows/win32/api/setupapi/nf-setupapi-setupdigetdeviceregistrypropertya)
+    * (https://learn.microsoft.com/es-es/windows/win32/api/setupapi/nf-setupapi-setupdienumdeviceinfo)
 
-    // Usamos las librerias setupapi y la libreria devguid (las usa el admin de disps) para obtener nombres de COM.
-    // Importante saber que tenemos que linkear la libreria setupapi en CMake para que funcione.
-    // Usamos un bucle while (GetClassDevs) con un if dentro (RegProp (la llamaremos asi, obtener nombre puerto)).
-    // Segun lo que devuelva la funcion if (TRUE o FALSE) sabremos si hay error.
-    // En caso de error, saldrá del bucle while y pondrá nuestro código de error. Si no, continúa.
+    * Usamos las librerias setupapi y la libreria devguid (las usa el admin de disps) para obtener nombres de COM.
+    * Importante saber que tenemos que linkear la libreria setupapi en CMake para que funcione.
+    * Usamos un bucle while (GetClassDevs) con un if dentro (RegProp (la llamaremos asi, obtener nombre puerto)).
+    * Segun lo que devuelva la funcion if (TRUE o FALSE) sabremos si hay error.
+    * En caso de error, saldrá del bucle while y pondrá nuestro código de error. Si no, continúa.
+    */
 
     uint8_t bufferSetup [5000]; // RegProp necesita un dato tipo PBYTE. Es más seguro usar uint8_t.
                                 // Microsoft los inventó hace mucho pero causan fugas de memoria y no son portables.
@@ -144,10 +145,11 @@ void ListarPuertosSerie () {
     HDEVINFO idTemp = SetupDiGetClassDevs(&GUID_DEVCLASS_PORTS,NULL,NULL,
                  DIGCF_PRESENT); // DIGCF_PRESENT: Filtrado de SOLO los dispositivos activos
 
-    // Handle to Device Information (cortesia gemini).
-    // Windows guarda toda la lista gigante de dispositivos en una zona protegida de su memoria.
-    // A cambio, te da un ticket (idTemp).
-    // Cada vez que quieres consultar algo de esa lista, le enseñas el ticket a Windows
+    /* Handle to Device Information (cortesia gemini).
+     * Windows guarda toda la lista gigante de dispositivos en una zona protegida de su memoria.
+     * A cambio, te da un ticket (idTemp).
+     * Cada vez que quieres consultar algo de esa lista, le enseñas el ticket a Windows
+    */
 
     int k = 0;
     int testError = 0;
@@ -166,18 +168,19 @@ void ListarPuertosSerie () {
         if (SetupDiGetDeviceRegistryPropertyA(idTemp, &idDispositivo, SPDRP_FRIENDLYNAME,
                       NULL, bufferSetup, sizeof(bufferSetup), NULL) != FALSE) {
 
-            // SetupDiGetDeviceRegistryProperty devuelve TRUE si la llamada se realizó correctamente.
-            // De lo contrario, devuelve FALSE, error registrado se puede recuperar mediante una llamada GetLastError.
-            // SetupDiGetDeviceRegistryProperty devuelve el código de error ERROR_INVALID_DATA.
-            // si la propiedad solicitada no existe para un dispositivo o si los datos de propiedad no son válidos.
+            /* SetupDiGetDeviceRegistryProperty devuelve TRUE si la llamada se realizó correctamente.
+             * De lo contrario, devuelve FALSE, error registrado se puede recuperar mediante una llamada GetLastError.
+             * SetupDiGetDeviceRegistryProperty devuelve el código de error ERROR_INVALID_DATA.
+             * si la propiedad solicitada no existe para un dispositivo o si los datos de propiedad no son válidos.
+            */
 
             // Caso donde funcione la llamada:
 
             SetConsoleOutputCP(65001); // UTF-8. Necesario. Usan codificacion diferente... blegh.
-            printf(YELLOW"Opción"); // Se verá bonito en la consola.
+            printf(YELLOW"•) "); // Se verá bonito en la consola.
 
             SetConsoleOutputCP(1252); // La funcion devuelve datos codificados en ANSI Latin 1.
-            printf(" %d -> "BLUE"%s\n"RESET, k, bufferSetup); // Se verá igual de bonito.
+            printf(BLUE"%s\n"RESET, bufferSetup); // Se verá igual de bonito.
         }
 
         k++; // Incrementamos k para recorrer el siguiente puerto.
@@ -220,16 +223,17 @@ int PedirPuertoSeriei () {
     return opcionPuerto;
 } // esa i al final significa que es un int.
 
-int PedirBaudiosi () {
+int PedirOpcioni () {
 
-    int opcionBaudios;
-    int opcionTest = leer_entero("\nIntroduzca los baudios deseados: ", &opcionBaudios);
+    int opcion;
+    int opcionTest = leer_entero("\nIntroduzca la opción deseada: ", &opcion);
 
     while (opcionTest != 0) {
-        opcionTest = leer_entero("\nIntroduzca los baudios deseados: ", &opcionBaudios);
+        printf(RED"\nError: Entrada Inválida\n"RESET);
+        opcionTest = leer_entero("\nIntroduzca la opción deseada: ", &opcion);
     }
 
-    return opcionBaudios;
+    return opcion;
 } // // esa i al final significa que es un int.
 
 int main() {
@@ -240,48 +244,69 @@ int main() {
 
     SetConsoleOutputCP(65001); // Pasamos a UTF-8 despues de usar la funcion con ANSI.
 
-    int UserPort = PedirPuertoSeriei();
+    int PuertoUsuario = PedirPuertoSeriei();
 
-    printf(RESET"\nHa escogido el puerto "BLUE"(COM%d).\n"RESET, UserPort);
+    printf(RESET"\nHa escogido el puerto "BLUE"(COM%d).\n"RESET, PuertoUsuario);
 
     // ELECCIÓN DE BAUDIOS //
 
     printf("\nEscoja la opción de tasa de baudios para la comunicación.\n\n");
 
-    printf("1 -> 1200\n2 -> 2400\n3 -> 4800\n4 -> 9600\n5 -> 19200\n6 -> 38400\n7 -> 57600\n8 -> 115200\n");
+    printf(BLUE"1"RESET" -> 1200\n"
+           BLUE"2"RESET" -> 2400\n"
+           BLUE"3"RESET" -> 4800\n"
+           BLUE"4"RESET" -> 9600\n"
+           BLUE"5"RESET" -> 19200\n"
+           BLUE"6"RESET" -> 38400\n"
+           BLUE"7"RESET" -> 57600\n"
+           BLUE"8"RESET" -> 115200\n");
 
-    int UserBaudsOpcion = PedirBaudiosi();
-    int UserBaudsTasa = 0;
+    int BaudiosUsuarioOpcion = PedirOpcioni();
+    int BaudiosUsuarioTasa = 0;
 
-    if (UserBaudsOpcion == 1) {
-        UserBaudsTasa = 1200;
-    } else if (UserBaudsOpcion == 2) {
-        UserBaudsTasa = 2400;
-    } else if (UserBaudsOpcion == 3) {
-        UserBaudsTasa = 4800;
-    } else if (UserBaudsOpcion == 4) {
-        UserBaudsTasa = 9600;
-    } else if (UserBaudsOpcion == 5) {
-        UserBaudsTasa = 19200;
-    } else if (UserBaudsOpcion == 6) {
-        UserBaudsTasa = 38400;
-    } else if (UserBaudsOpcion == 7) {
-        UserBaudsTasa = 57600;
-    } else if (UserBaudsOpcion == 8) {
-        UserBaudsTasa = 115200;
+    if (BaudiosUsuarioOpcion == 1) {
+        BaudiosUsuarioTasa = 1200;
+    } else if (BaudiosUsuarioOpcion == 2) {
+        BaudiosUsuarioTasa = 2400;
+    } else if (BaudiosUsuarioOpcion == 3) {
+        BaudiosUsuarioTasa = 4800;
+    } else if (BaudiosUsuarioOpcion == 4) {
+        BaudiosUsuarioTasa = 9600;
+    } else if (BaudiosUsuarioOpcion == 5) {
+        BaudiosUsuarioTasa = 19200;
+    } else if (BaudiosUsuarioOpcion == 6) {
+        BaudiosUsuarioTasa = 38400;
+    } else if (BaudiosUsuarioOpcion == 7) {
+        BaudiosUsuarioTasa = 57600;
+    } else if (BaudiosUsuarioOpcion == 8) {
+        BaudiosUsuarioTasa = 115200;
     } else {
         // Control de errores por si introducen un número fuera del rango 1-8
         printf(RED"\nOpción inválida."RESET" Asignando 9600 baudios por defecto.\n");
-        UserBaudsTasa = 9600;
+        BaudiosUsuarioTasa = 9600;
     }
 
-    printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, UserBaudsTasa);
+    printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, BaudiosUsuarioTasa);
+
+    // PREPARACION DE DATOS PARA ENVIO //
+
+    char PuertoUsuarioArray [20];
+    sprintf(PuertoUsuarioArray, "\\\\.\\COM%d", PuertoUsuario);
+
+    /* Gemini: En C y C++, la barra invertida \ es un carácter de escape.
+     * \\.\ es por el Win32 Device Namespace. Es algo que han inventado para hablar estrictamente de Hardware.
+     * Como ya no estamos en MS-DOS, han tenido que crearlo, ya que MS-DOS iba de 0 a 9 COMs.
+     * Si tenemos un COM10, 11... no funcionaría con COM%d. Hay que usar \\.\
+     * Entonces, queda esa cosa tan larga debido a que para una \ hay que escribir \\.
+    */
 
     // MENSAJE, ENVIO //
 
+    // TODO: Comunicación retroactiva con STM32.
+
     char mensaje[100] = "Miau!\n";
     uint8_t buff[100]={0}; // Buffer lleno de ceros.
-    HANDLE port  = openSerial("COM9",9600); // Abrimos conexión.
+    HANDLE port  = openSerial(PuertoUsuarioArray, BaudiosUsuarioTasa); // Abrimos conexión.
 
     read_port(port,buff,sizeof(buff));
     // Intenta leer si el STM32 había enviado algo viejo mientras se conectaba.
