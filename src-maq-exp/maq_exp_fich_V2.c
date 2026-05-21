@@ -248,19 +248,22 @@ int main()
     char ruta_config [256] = "../cfg/config.bin"; // Alocamos ruta del config para cambiarla a nuestro gusto.
     char ruta_config_out [256] = {0}; // Array sin basura, vacio con solo \0.
 
-    printf(BLUE"/**************************************************/\n\n"RESET);
+    printf(BLUE"••••••••••••••••••••••••••••••••••••••••••••••••••••••\n\n"RESET);
+
     printf(YELLOW"Iniciando Programa.\n\n"RESET);
     printf("Cargando configuracion...");
 
-    if (cargar_binario(ruta_config, ruta_config_out) == 0) {
+    if (cargar_binario(ruta_config, ruta_config_out) == 0 && cargar_texto(ruta_config_out, maquina, MAXPRODS, &nProds) == 0) {
         printf(GREEN"\nCargado exitoso.\n"RESET);
-        printf("\nRuta actual: "BLUE"%s\n\n"RESET, ruta_config_out);
+        printf("\nRuta de configuración: " BLUE "%s" RESET, ruta_config);
+        printf("\nRuta de productos: " MAGENTA "%s\n" RESET, ruta_config_out);
+        printf(GREEN"\nLos productos están cargados.\n"RESET);
     }
     else printf(RED"\nNo se encontro ruta productos."RESET" Realice mantenimiento.\n\n");
 
-    printf("Presione"YELLOW" ENTER para continuar...\n\n"RESET);
+    printf("\nPresione"YELLOW" ENTER para continuar...\n\n"RESET);
 
-    printf(BLUE"/**************************************************/\n"RESET);
+    printf(BLUE"••••••••••••••••••••••••••••••••••••••••••••••••••••••\n\n"RESET);
 
     getchar(); // esperamos a enter
     system("cls"); // system manda una orden para que el cmd escriba lo que tu le dices en parentesis.
