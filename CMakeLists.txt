@@ -34,6 +34,10 @@ add_executable(maq_exp_ficheros src-maq-exp/maq_exp_fich.c
               lib/lectura.c
 )
 
+add_executable(maq_exp_ficheros_V2 src-maq-exp/maq_exp_fich_V2.c
+        lib/lectura.c
+)
+
 add_executable(ej1-mem-din src-temas/tema7-memoria/ej1-memoria-dinamica.c
               lib/lectura.c
 )
