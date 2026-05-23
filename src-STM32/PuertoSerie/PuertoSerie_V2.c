@@ -5,6 +5,7 @@
  *      2. Permite habilitar al usuario cualquier puerto serie deseado.
 */
 
+#include <stdlib.h>   // standard lib, para exit(1) u otros.
 #include <stdio.h>    // standard input teclado.
 #include <windows.h>  // Necesario para lo relacionado a puerto serie.
 #include <stdint.h>   // Para uint...
@@ -69,7 +70,7 @@ HANDLE openSerial(const char * puerto, uint32_t baud_rate){ // Funcion de config
 
     GetCommState(p,&estado);
     estado.BaudRate = baud_rate; // Configuramos baudios, debe ser igual que los del STM!
-    estado.ByteSize = 8; // Tamaño del registro, 8 bytes (USART_DR es de 8 bytes).
+    estado.ByteSize = 8; // Tamaño del registro, 8 bits (USART_DR es de 8 bytes).
     estado.Parity   = NOPARITY; // Sin paridad, no hemos programado eso aun.
     estado.StopBits = ONESTOPBIT; // Tiene un bit de parada, manual del STM.
 
@@ -317,7 +318,7 @@ int main() {
     FlushFileBuffers(port); // Aseguramos que mande el mensaje entero.
 
     // DISPLAY EN CONSOLA //
-    read_port(port,buff,sizeof(buff)); // Escucha respuesta de STM32. Saca el mensaje de la bandeja de COM9.
+    read_port(port,buff,sizeof(buff)); // Escucha respuesta de STM32. Saca el mensaje de la bandeja de COMx.
     printf(buff); // Guardamos respuesta en buffer, y lo imprimimos en la consola.
     CloseHandle(port); // Cerramos el puerto.
 
