@@ -1,0 +1,646 @@
+/* Nombre: Mexp_STM_Final
+ * Autor: David Martinez (dmm00093@red.ujaen.es)
+ * Asignatura: Informatica Industrial
+ * Proyecto Ordinaria 2: Maquina Expendedora + Puerto Serie + STM32
+ * Funcion de programa: Interfaz de maquina expendedora en Windows CMD + Integración PC-STM32 + Sincronía PC-STM32
+*/
+
+#include <stdlib.h>   // standard lib, para exit(1) u otros.
+#include "ficheros.h" // ficheros
+#include "lectura.h"  // Para pedir datos al usuario de forma segura.
+#include "puertoserie.h" // Libreria funciones pserie. Incluye todas las librerias necesitadas, ver .h
+
+// ---------------------------------------------------------------------------------------------------------------------
+//             ADVERTENCIA: CERRAR CUALQUIER PROGRAMA QUE PUEDA USAR EL COM DE STLINK (CUBEIDE, ETC) Y
+//             NECESARIO  : CARGAR "PuertoSerie_USART_PC.c" O CUALQUIER OTRO PROGRAMA SÍMIL EN EL STM32.
+// ---------------------------------------------------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------------------------------------------------
+//             ADVERTENCIA: STRUCT DE MAQUINA, CONFIG GESTIONADO EN EL HEADER DE LA LIBRERIA FICHEROS.
+//             NECESARIO  : CARGAR LIBRERIA SI SE VAN A USAR LOS STRUCTS Y FUNCIONES ASOCIADAS
+// ---------------------------------------------------------------------------------------------------------------------
+
+// Funciones Productos //
+/********************************************/
+static void imprimir_producto(const Producto prod) // ver main, definimos prod como subproductos
+{
+    printf("ID: %d | %-20s | %.2f EUR | Stock: %d\n", prod.id, prod.nombre, prod.precio, prod.stock);
+    // Basicamente imprimimos los productos que estan contenidos en ese array de Producto.
+}
+
+static void listar_productos(const Producto *arr, int n) // hay que pasar tódo a un array. ver main
+{
+    printf("|------------------- PRODUCTOS -------------------|\n");
+
+    for (int i = 0; i < n; i++) {
+        imprimir_producto(arr[i]); // vemos cada subproducto en el array definido en main (maquina, por ej)
+    }
+    printf("|-------------------------------------------------|\n");
+}
+
+static void alta_producto(Producto *arr, int *n, int max) {
+    // Comprobamos si hay espacio:
+
+    if (*n >= max) {
+        printf("Error: maquina llena.");
+        return;
+    }
+
+    Producto nuevo; // Creamos un nuevo struct temporal que ira al array.
+
+    // Preguntamos especificaciones.
+
+    int testId = leer_entero("ID nueva: ", &nuevo.id);
+    if (testId != 0) {
+        printf("Error: no valido.\n");
+        return;
+    }
+
+    int testNom = leer_cadena("Nombre nuevo: ", nuevo.nombre, 32);
+    if (testNom != 0) {
+        printf("Error: no valido.\n");
+        return;
+    }
+
+    int testPrc = leer_float("Precio nuevo: ", &nuevo.precio);
+    if (testPrc != 0) {
+        printf("Error: no valido.\n");
+        return;
+    }
+
+    int testStk = leer_entero("Stock nuevo: ", &nuevo.stock);
+    if (testStk != 0) {
+        printf("Error: no valido.\n");
+        return;
+    }
+
+    arr[*n] = nuevo; // Ahora, en esa posicion libre del array, metemos nuestro struct que es ahora permanente.
+    (*n)++; // Incrementamos el numero de productos ya que hemos metido uno nuevo.
+}
+
+int buscar_indice_por_id(Producto *arr, int n, int id) {
+    for (int i = 0; i < n; i++) {
+        if (arr[i].id == id) {
+            printf("La [ID: %d] corresponde al indice [%d] del producto: [%s].\n",
+                   arr[i].id, i, arr[i].nombre);
+            return i;
+        }
+    }
+
+    printf("No se encuentra.\n");
+    return -1;
+}
+
+static void modificar_producto(Producto *arr, int *n, int id) {
+    for (int i = 0; i < *n; i++) {
+        if (arr[i].id == id) {
+            printf("\nProducto seleccionado:\n");
+
+            printf("[%s]: ID(%d), Precio(%.2f EUR), Stock(%d ud).\n\n", arr[i].nombre, arr[i].id, arr[i].precio,
+                   arr[i].stock);
+
+            int idTest = leer_entero("Introduzca la nueva ID: ", &arr[i].id);
+            if (idTest != 0) {
+                printf("Error: Entrada invalida.");
+                return;
+            }
+
+            int nomTest = leer_cadena("Introduzca el nuevo nombre: ", arr[i].nombre, 32);
+            if (nomTest != 0) {
+                printf("Error: Entrada invalida.");
+                return;
+            }
+
+            int prTest = leer_float("Introduzca el nuevo precio: ", &arr[i].precio);
+            if (prTest != 0) {
+                printf("Error: Entrada invalida.");
+                return;
+            }
+
+            int stkTest = leer_entero("Introduzca el nuevo stock: ", &arr[i].stock);
+            if (stkTest != 0) {
+                printf("Error: Entrada invalida.");
+                return;
+            }
+
+            return;
+        }
+    }
+}
+/********************************************/
+
+// Cuerpo de Programa //
+/********************************************/
+
+#define MAXPRODS 15 // Maximo Productos
+
+int main() {
+
+    // TODO: Struct configuracion STM32. Poder guardar y cargar configuracion STM32.
+    // TODO: Tema de comunicacion PC-STM y lo del boton, monedas...
+
+    // CARGADO DE PRODUCTOS Y CONFIGURACIÓN.
+
+    SetConsoleOutputCP(65001); // Pasamos a UTF-8
+
+    Producto maquina[MAXPRODS] = {0}; // iniciamos el array a {0} para evitar errores.
+    int nProds = 0;
+
+    // Iniciamos configuracion antes de cargar menu
+    char ruta_config[256] = "../cfg/config.bin"; // Alocamos ruta del config para cambiarla a nuestro gusto.
+    char ruta_config_out[256] = {0}; // Array sin basura, vacio con solo \0.
+
+    int configOK = cargar_binario(ruta_config, ruta_config_out);
+    int prodsOK = -1;
+    int modo1ok;
+
+    printf(BLUE"••••••••••••••••••••••••••••••••••••••••••••••••••••••\n\n"RESET);
+
+    printf(YELLOW"Iniciando Programa.\n\n"RESET);
+    printf("Cargando configuracion...\n");
+
+    if (configOK == 0) {
+        prodsOK = cargar_texto(ruta_config_out, maquina, MAXPRODS, &nProds);
+    }
+
+    if (configOK == 0 && prodsOK == 0) {
+        printf(GREEN"\nCargado exitoso.\n"RESET);
+        printf("\nRuta de configuración: " BLUE "%s" RESET, ruta_config);
+        printf("\nRuta de productos: " MAGENTA "%s\n" RESET, ruta_config_out);
+        printf("\n" BG_BLUE BOLD " Los productos están cargados. "RESET"\n");
+        modo1ok = 0;
+    } else if (configOK == 0 && prodsOK != 0) {
+        printf(BG_RED BOLD"\nNo se encontraron productos. Realice mantenimiento.\n" RESET);
+        modo1ok = -1;
+    } else if (configOK != 0) {
+        printf(BG_RED BOLD"\nNo se encontró configuración. Realice mantenimiento.\n" RESET);
+        modo1ok = -1;
+    }
+
+    printf("\nPresione"YELLOW" ENTER para continuar...\n\n"RESET);
+
+    printf(BLUE"••••••••••••••••••••••••••••••••••••••••••••••••••••••\n\n"RESET);
+
+    getchar(); // esperamos a enter
+    system("cls"); // system manda una orden para que el cmd escriba lo que tu le dices en parentesis.
+    // cls -> clear screen clasico de siempre
+
+    // PÁGINA PRINCIPAL //
+
+    int opcionStart;
+    double carrito = 0;
+
+    do {
+        printf("Página de inicio.\n\n");
+        printf("1. Entrar a modo de compra\n");
+        printf("2. Gestión de la máquina (mantenimiento)\n");
+        printf("3. Gestión de hardware (STM32)\n");
+        printf("4. Ver configuración actual\n");
+        printf("0. Salir\n\n");
+
+        int testStart1 = leer_entero("Introduzca su opción: ", &opcionStart);
+
+        while (testStart1 != 0) {
+            printf("\nError: opción inválida\n\n");
+            testStart1 = leer_entero("Introduzca su opción: ", &opcionStart);
+        }
+
+        system("cls");
+
+        // TODO: Modo de compra
+
+        switch (opcionStart) {
+            case 1: {
+                // MENU COMPRA
+
+                if (modo1ok == -1) {
+                    printf(BG_RED BOLD"\nError: Realice mantenimiento\n"RESET);
+                    printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                    getchar();
+                    system("cls");
+                    break;
+                }
+
+                if (modo1ok == 0) {
+                    listar_productos(maquina, nProds);
+
+                    int selProd;
+                    int prodEncontrado = -1; // Testigo para decir si ha encontrado lo que quiere el usuario, o no.
+
+                    do {
+                        int testProd = leer_entero("\nSELECCIONE PRODUCTO: ", &selProd);
+
+                        while (testProd != 0) {
+                            printf(BG_RED "\nOpción inválida, vuelva a intentarlo.\n" RESET);
+                            testProd = leer_entero("SELECCIONE PRODUCTO:", &selProd);
+                        }
+
+                        for (int i = 0; i < nProds; i++) {
+                            if (selProd == maquina[i].id) {
+                                prodEncontrado = i;
+                                break;
+                            }
+                        }
+
+                        if (prodEncontrado == -1) {
+                            printf(
+                                BG_RED BOLD "\nNo se encuentra el producto." RESET BG_RED " Intentelo de nuevo\n"
+                                RESET);
+                        }
+                    } while (prodEncontrado == -1);
+
+                    printf("\nPRODUCTO SELECCIONADO: %s\n", maquina[prodEncontrado].nombre);
+
+                    carrito = maquina[prodEncontrado].precio;
+                    printf("\nIMPORTE A PAGAR: %.2f\n", carrito);
+
+                    const double testMoneda = 5.45;
+                    double vuelta = testMoneda - carrito;
+
+                    printf("SALDO: %.2f\n", testMoneda);
+                    printf("SU VUELTA ES: %.2f", vuelta);
+
+                    getchar();
+                    system("cls");
+                    break;
+                }
+            }
+
+            case 2: {
+
+                // MENU MANTENIMIENTO
+
+                system("cls");
+
+                printf("Bienvenido al asistente de configuración de máquina.\n\n");
+                int opcionMenu;
+
+                do {
+                    printf(".--------------------------.\n");
+                    printf("|   " YELLOW " Gestión de Máquina" RESET "    |\n");
+                    printf(".--------------------------.\n");
+                    printf("| "MAGENTA"1 - Guardar Productos"RESET"    |\n");
+                    printf("| "MAGENTA"2 - Cargar Productos"RESET"     |\n");
+                    printf("| "MAGENTA"3 - Listar Productos"RESET"     |\n");
+                    printf("| "MAGENTA"4 - Anadir Productos"RESET"     |\n");
+                    printf("| "MAGENTA"5 - Modificar Productos"RESET"  |\n");
+                    printf("| "MAGENTA"6 - Buscar Producto"RESET"      |\n");
+                    printf("| "GREEN"7 - Cargar Configuracion"RESET" |\n");
+                    printf("| "GREEN"8 - Crear Configuracion"RESET"  |\n");
+                    printf("| "GREEN"9 - Editar Configuracion"RESET" |\n");
+                    printf("| "GREEN"10 - Ver Configuracion   "RESET"|\n");
+                    printf("| "RED"0 - Salir a menú"RESET"         |\n");
+                    printf(".--------------------------.\n");
+
+                    int opcionTest = leer_entero("\nIntroduzca su opcion: ", &opcionMenu);
+
+                    while (opcionTest != 0) {
+                        printf("\nOpcion invalida.\n");
+                        opcionTest = leer_entero("\nIntroduzca su opcion: ", &opcionMenu);
+                    }
+
+                    switch (opcionMenu) {
+                        case 1: {
+                            // Guardado Productos
+                            printf("\nGuardando productos...\n\n"RED);
+
+                            if (guardar_texto(ruta_config_out, maquina, nProds) == 0) {
+                                printf(GREEN"Guardado exitoso.\n"RESET);
+                            } else printf("Error de guardado.\n\n"RESET);
+                            break;
+                        }
+
+                        case 2: {
+                            // Carga productos
+                            printf("\nCargando productos...\n\n");
+                            if (cargar_texto(ruta_config_out, maquina, MAXPRODS, &nProds) == 0) {
+                                printf(GREEN"Cargado exitoso\n"RESET);
+                            } else printf(RED"Error de carga.\n\n"RESET);
+                            break;
+                        }
+
+                        case 3: {
+                            printf("\nListando productos:\n");
+                            if (nProds == 0) {
+                                printf(RED"Error: No hay productos\n\n"RESET);
+                                break;
+                            }
+                            listar_productos(maquina, nProds);
+                            printf("\nListado terminado.\n");
+                            break;
+                        }
+
+                        case 4: {
+                            // Adicionado productos
+                            int opcion2;
+
+                            int testOp2 = leer_entero("\nCuantos productos deseas adicionar: ", &opcion2);
+
+                            if (testOp2 != 0 || opcion2 + nProds > MAXPRODS) {
+                                // Si se sale de la capacidad de la maquina, no podremos. O si es invalida entrada.
+                                printf("No valido.\n");
+                                if (testOp2 != 0) {
+                                    printf(RED "Error: introduzca un dato válido" RESET);
+                                } else {
+                                    printf(RED"Error: no hay espacio en la máquina"RESET);
+                                }
+                                return -1;
+                            }
+
+                            if (opcion2 == 0) {
+                                printf("Abandonando menu...");
+                            }
+
+                            for (int i = 1; i <= opcion2; i++) {
+                                printf("\nEspecifique su producto numero: %d\n", i);
+                                alta_producto(maquina, &nProds, MAXPRODS);
+                                // Definimos MAXPRODS al inicio como constante. Es una maquina.
+
+                                // &nProds ya que usamos paso por referencia y vamos a editar su valor directamente en memoria, no copiamos.
+                            }
+
+                            break;
+                        }
+
+                        case 5: {
+                            // Editado productos
+                            int opcion3;
+
+                            if (nProds == 0) {
+                                printf(RED"Error: No hay productos\n"RESET);
+                                break;
+                            }
+
+                            int testOp3 = leer_entero("\nIntroduzca la ID del producto a modificar: ", &opcion3);
+
+                            if (testOp3 != 0) {
+                                printf(RED"Error: entrada no valida.\n"RESET);
+                                return -1;
+                            }
+
+                            modificar_producto(maquina, &nProds, opcion3);
+                            break;
+                        }
+
+                        case 6: {
+                            // Busqueda producto
+                            int opcion4;
+
+                            if (nProds == 0) {
+                                printf(RED"Error: No hay productos\n"RESET);
+                                break;
+                            }
+
+                            int testop4 = leer_entero("\nBusque la ID deseada: ", &opcion4);
+
+                            if (testop4 != 0) {
+                                printf(RED"Error: entrada no valida.\n"RESET);
+                                return -1;
+                            }
+
+                            buscar_indice_por_id(maquina, nProds, opcion4);
+                            break;
+                        }
+
+                        case 7: {
+                            printf("\nCargando config.bin...\n");
+
+                            if (cargar_binario(ruta_config, ruta_config_out) == 0) {
+                                printf(GREEN"\nCargado exitoso.\n"RESET);
+                                printf("Ruta actual: ");
+                                printf(BLUE"%s\n"RESET, ruta_config_out);
+                            } else {
+                                printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n\n");
+                            }
+                            break;
+                        }
+
+                        case 8: {
+                            printf("\nCreador de configuracion\n\n");
+                            // Debe especificar donde esta productos.txt, sin " ".
+                            printf("Ejemplo al escribir ruta:" BLUE " ruta/ruta2/data/productos.txt\n" RESET);
+                            printf(RED"No se deben incluir los caracteres "" al escribir la ruta.\n"RESET);
+
+                            int testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+
+                            while (testRuta != 0) {
+                                printf(RED"Error: entrada no valida.\n"RESET);
+                                testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+                            }
+
+                            if (guardar_binario(ruta_config, ruta_config_out) == 0) {
+                                printf(GREEN"\nGuardado exitoso.\n"RESET);
+                                printf("Ruta actual: ");
+                                printf(BLUE"%s\n"RESET, ruta_config_out);
+                            } else {
+                                printf(RED"\nError en guardado. Saliendo..."RESET);
+                            }
+                            break;
+                        }
+
+                        case 9: {
+                            printf("\nEditor de configuracion\n");
+
+                            if (cargar_binario(ruta_config, ruta_config_out) != 0) {
+                                printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n\n");
+                                break;
+                            }
+
+                            int testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+                            while (testRuta != 0) {
+                                printf(RED"Error: no valido.\n"RESET);
+                                testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+                            }
+
+                            if (guardar_binario(ruta_config, ruta_config_out) == 0) {
+                                printf(GREEN"\nGuardado exitoso.\n"RESET);
+                                printf("Ruta actual: ");
+                                printf(BLUE"%s\n"RESET, ruta_config_out);
+                            } else {
+                                printf(RED"\nError en guardado. Saliendo..."RESET);
+                            }
+
+                            break;
+                        }
+
+                        case 10: {
+                            if (cargar_binario(ruta_config, ruta_config_out) == 0) {
+                                printf("Ruta actual: ");
+                                printf(BLUE"%s\n"RESET, ruta_config_out);
+                            } else {
+                                printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n\n");
+                            }
+
+                            break;
+                        }
+
+                        case 0: {
+                            printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+
+                            system("cls");
+                            break;
+                        }
+
+                        default: printf("\nNo valido. Saliendo...");
+                    }
+                } while (opcionMenu != 0);
+
+                break; // Necesario para evitar que haga el siguiente case automatico
+            } // } final case de opcion 2.
+
+            case 3: {
+
+                int opcionMenu;
+                printf("Bienvenido al asistente de gestión de hardware\n\n");
+
+                do {
+
+                    printf("1. Elegir puerto serie (comunicación)\n");
+                    printf("2. Elegir tasa de baudios (comunicación)\n");
+                    printf("3. Guardar configuración\n");
+                    printf("4. Cargar configuración\n");
+                    printf("0. Salir\n");
+
+                    int opcionTest = leer_entero("\nIntroduzca su opcion: ", &opcionMenu);
+
+                    while (opcionTest != 0) {
+                        printf("\nOpcion invalida.\n");
+                        opcionTest = leer_entero("\nIntroduzca su opcion: ", &opcionMenu);
+                    }
+                    switch (opcionMenu) {
+
+                        case 1: {
+
+                            // LISTADO Y ELECCIÓN DE PUERTOS SERIE //
+
+                            printf("\n");
+
+                            ListarPuertosSerie(); // Listamos. En la función se usa su propio SetConsoleOutput.
+
+                            SetConsoleOutputCP(65001); // Pasamos a UTF-8 despues de usar la funcion con ANSI.
+
+                            int PuertoUsuario = PedirPuertoSeriei();
+
+                            printf(RESET"\nHa escogido el puerto "BLUE"(COM%d).\n\n"RESET, PuertoUsuario);
+
+                            char PuertoUsuarioArray[20];
+                            sprintf(PuertoUsuarioArray, "\\\\.\\COM%d", PuertoUsuario);
+
+                            printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                            getchar();
+                            system("cls");
+
+                            break;
+
+                            /* Gemini: En C y C++, la barra invertida \ es un carácter de escape.
+                            * \\.\ es por el Win32 Device Namespace. Es algo que han inventado para hablar estrictamente de Hardware.
+                            * Como ya no estamos en MS-DOS, han tenido que crearlo, ya que MS-DOS iba de 0 a 9 COMs.
+                            * Si tenemos un COM10, 11... no funcionaría con COM%d. Hay que usar \\.\
+                            * Entonces, queda esa cosa tan larga debido a que para una \ hay que escribir \\.
+                           */
+                        }
+
+                        case 2: {
+
+                            // ELECCIÓN DE BAUDIOS //
+
+                            printf("\nEscoja la opción de tasa de baudios para la comunicación.\n\n");
+
+                            printf(BLUE"1"RESET" -> 1200\n"
+                                BLUE"2"RESET" -> 2400\n"
+                                BLUE"3"RESET" -> 4800\n"
+                                BLUE"4"RESET" -> 9600\n"
+                                BLUE"5"RESET" -> 19200\n"
+                                BLUE"6"RESET" -> 38400\n"
+                                BLUE"7"RESET" -> 57600\n"
+                                BLUE"8"RESET" -> 115200\n");
+
+                            int BaudiosUsuarioOpcion = PedirOpcioni();
+                            int BaudiosUsuarioTasa = 0;
+
+                            if (BaudiosUsuarioOpcion == 1) {
+                                BaudiosUsuarioTasa = 1200;
+                            } else if (BaudiosUsuarioOpcion == 2) {
+                                BaudiosUsuarioTasa = 2400;
+                            } else if (BaudiosUsuarioOpcion == 3) {
+                                BaudiosUsuarioTasa = 4800;
+                            } else if (BaudiosUsuarioOpcion == 4) {
+                                BaudiosUsuarioTasa = 9600;
+                            } else if (BaudiosUsuarioOpcion == 5) {
+                                BaudiosUsuarioTasa = 19200;
+                            } else if (BaudiosUsuarioOpcion == 6) {
+                                BaudiosUsuarioTasa = 38400;
+                            } else if (BaudiosUsuarioOpcion == 7) {
+                                BaudiosUsuarioTasa = 57600;
+                            } else if (BaudiosUsuarioOpcion == 8) {
+                                BaudiosUsuarioTasa = 115200;
+                            } else {
+                                // Control de errores por si introducen un número fuera del rango 1-8
+                                printf(RED"\nOpción inválida."RESET" Asignando 9600 baudios por defecto.\n");
+                                BaudiosUsuarioTasa = 9600;
+                            }
+
+                            printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, BaudiosUsuarioTasa);
+                            printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                            getchar();
+                            break;
+                        }
+
+                        case 3: {
+                            break;
+                        }
+
+                        case 0: {
+                            system("cls");
+                            break;
+                        }
+
+                        default: {
+                            printf("Error: no válido");
+                            break;
+                        }
+                    }
+                }while (opcionMenu != 0);
+
+                break;
+            }
+
+            case 4: {
+
+                configOK = cargar_binario(ruta_config, ruta_config_out);
+
+                if (configOK == 0) {
+                    prodsOK = cargar_texto(ruta_config_out, maquina, MAXPRODS, &nProds);
+                }
+                if (configOK == 0 && prodsOK == 0) {
+                    printf(GREEN"Cargado exitoso.\n"RESET);
+                    printf("\nRuta de configuración: " BLUE "%s" RESET, ruta_config);
+                    printf("\nRuta de productos: " MAGENTA "%s\n" RESET, ruta_config_out);
+                    printf("\n" BG_BLUE BOLD " Los productos están cargados. "RESET"\n");
+                    modo1ok = 0;
+                } else if (configOK == 0 && prodsOK != 0) {
+                    printf(BG_RED BOLD"No se encontraron productos. Realice mantenimiento.\n" RESET);
+                    modo1ok = -1;
+                } else if (configOK != 0) {
+                    printf(BG_RED BOLD"No se encontró configuración. Realice mantenimiento.\n" RESET);
+                    modo1ok = -1;
+                }
+
+                printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                getchar();
+
+                system("cls");
+                break;
+            }
+
+            case 0: {
+                exit(1);
+            }
+
+            default: printf(RED"\nError: no valido.");
+        }
+    } while (opcionStart != 0);
+
+    return 0;
+}
