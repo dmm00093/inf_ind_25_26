@@ -14,6 +14,10 @@ int leer_entero (const char *input, int *output)
 
     size_t len = strlen(buf);
 
+    if (buf [0] == '\n') { // Si presiona ENTER el usuario sin escribir nada, error.
+        return -1;
+    }
+
     if (len > 0 && buf[len-1] == '\n')
     {
         buf [len-1] = '\0'; // quitamos \n al final de la cadena.
