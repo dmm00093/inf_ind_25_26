@@ -8,6 +8,8 @@ include_directories(lib)
 
 add_executable(lectura_lib lib/lectura.c)
 add_executable(productos_lib lib/productos.c)
+add_executable(puertoserie_lib lib/puertoserie.c)
+add_executable(ficheros_lib lib/ficheros.c)
 
 add_executable(ejercicio1 src-temas/tema3-punt-arrays-funcs/ejercicios-entrega-t3/ejercicio1.c)
 add_executable(ejercicio2 src-temas/tema3-punt-arrays-funcs/ejercicios-entrega-t3/ejercicio2.c)
@@ -49,3 +51,11 @@ add_executable(PuertoSerie_V1 src-STM32/PuertoSerie/PuertoSerie_V1.c)
 add_executable(PuertoSerie_V2 src-STM32/PuertoSerie/PuertoSerie_V2.c
                lib/lectura.c)
 target_link_libraries(PuertoSerie_V2 setupapi) # Necesario para que funcione setupAPI.
+
+# STM32 + Maquina Expendedora
+add_executable(MExp_STM_Final src-maq-STM32/MExp_STM_Final.c
+               lib/lectura.c
+               lib/puertoserie.c
+               lib/ficheros.c
+)
+target_link_libraries(MExp_STM_Final setupapi)
