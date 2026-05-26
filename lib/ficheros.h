@@ -21,6 +21,7 @@ typedef struct {
 typedef struct {
     char ruta_productos [256];
     char puertoCOM [20];
+	int puertoCOMdisplay;
     int baudios;
 	int configOK; // Esto es algo local. En vez de definir un int en mi main veremos este int en el struct.
 				  // La idea no fue mia, fue por gemini. Porque me estaba volviendo loco haciendo todo otra vez en el main.
