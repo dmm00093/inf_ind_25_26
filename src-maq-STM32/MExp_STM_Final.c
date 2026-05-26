@@ -5,10 +5,16 @@
  * Funcion de programa: Interfaz de maquina expendedora en Windows CMD + Integración PC-STM32 + Sincronía PC-STM32
 */
 
+/* Nota: todas las librerias necesarias (stdio, windows, setupapi, devguid, etc, están INCLUIDAS en las definiciones de los include
+ * Es decir, puertoserie.h, ficheros.h, lectura.h, ya las incluyen. puertoserie.h incluye todas, es algo redundante, pero:
+ * si se quieren usar librerias diferentes sin usar la otra, es necesario. 
+ * Nota: puertoserie.h si que utiliza funciones de ficheros.h, son codependientes.
+*/
+
 #include <stdlib.h>   // standard lib, para exit(1) u otros.
 #include "ficheros.h" // ficheros
 #include "lectura.h"  // Para pedir datos al usuario de forma segura.
-#include "puertoserie.h" // Libreria funciones pserie. Incluye todas las librerias necesitadas, ver .h
+#include "puertoserie.h" // Libreria funciones pserie. 
 
 // ---------------------------------------------------------------------------------------------------------------------
 //             ADVERTENCIA: CERRAR CUALQUIER PROGRAMA QUE PUEDA USAR EL COM DE STLINK (CUBEIDE, ETC) Y
@@ -22,14 +28,13 @@
 
 // Funciones Productos //
 /********************************************/
-static void imprimir_producto(const Producto prod) // ver main, definimos prod como subproductos
-{
+static void imprimir_producto(const Producto prod) { // ver main, definimos prod como subproductos
+
     printf("ID: %d | %-20s | %.2f EUR | Stock: %d\n", prod.id, prod.nombre, prod.precio, prod.stock);
     // Basicamente imprimimos los productos que estan contenidos en ese array de Producto.
 }
 
-static void listar_productos(const Producto *arr, int n) // hay que pasar tódo a un array. ver main
-{
+static void listar_productos(const Producto *arr, int n) { // hay que pasar tódo a un array. ver main
     printf("|------------------- PRODUCTOS -------------------|\n");
 
     for (int i = 0; i < n; i++) {
@@ -39,6 +44,7 @@ static void listar_productos(const Producto *arr, int n) // hay que pasar tódo 
 }
 
 static void alta_producto(Producto *arr, int *n, int max) {
+    
     // Comprobamos si hay espacio:
 
     if (*n >= max) {
@@ -78,7 +84,7 @@ static void alta_producto(Producto *arr, int *n, int max) {
     (*n)++; // Incrementamos el numero de productos ya que hemos metido uno nuevo.
 }
 
-int buscar_indice_por_id(Producto *arr, int n, int id) {
+int buscar_indice_por_id(Producto *arr, int n, int id) { 
     for (int i = 0; i < n; i++) {
         if (arr[i].id == id) {
             printf("La [ID: %d] corresponde al indice [%d] del producto: [%s].\n",
@@ -129,10 +135,13 @@ static void modificar_producto(Producto *arr, int *n, int id) {
 }
 /********************************************/
 
-// Cuerpo de Programa //
-/********************************************/
+/*
+********************************************
+             Cuerpo de Programa 
+********************************************
+*/
 
-#define MAXPRODS 15 // Maximo Productos
+#define MAXPRODS 15 // Maximo Productos de Máquina
 
 int main() {
 
@@ -145,13 +154,22 @@ int main() {
 
     Producto maquina[MAXPRODS] = {0}; // iniciamos el array a {0} para evitar errores.
     int nProds = 0;
+    
+    Configuracion config = {0}; // creamos array del struct. iniciamos en 0, si no, mal asunto (memoria basura).
+    config.configOK = -1; // de primeras es -1.
+	
+	/* Cosas a considerar del struct:
+	 * 1. NO tenemos ruta_config_out. Ahora tenemos config.ruta_productos.
+	 * 2. Si queremos acceder al struct habrá que usar &config o el nombre que le demos.
+	*/
 
     // Iniciamos configuracion antes de cargar menu
     char ruta_config[256] = "../cfg/config.bin"; // Alocamos ruta del config para cambiarla a nuestro gusto.
-    char ruta_config_out[256] = {0}; // Array sin basura, vacio con solo \0.
 
-    int configOK = cargar_binario(ruta_config, ruta_config_out);
-    int prodsOK = -1;
+    int testConfigOK = cargar_binario(ruta_config, &config); // La funcion devuelve un 0 si ok
+                                                             // Tira la info a &config, y accede a el, si no, mal asunto. 
+                                                             // Asi sabe donde esta el struct.
+    int prodsOK = -1; // Por defecto mal
     int modo1ok;
 
     printf(BLUE"••••••••••••••••••••••••••••••••••••••••••••••••••••••\n\n"RESET);
@@ -159,22 +177,34 @@ int main() {
     printf(YELLOW"Iniciando Programa.\n\n"RESET);
     printf("Cargando configuracion...\n");
 
-    if (configOK == 0) {
-        prodsOK = cargar_texto(ruta_config_out, maquina, MAXPRODS, &nProds);
+    if (testConfigOK == 0) {
+        config.configOK = 0; 
+        prodsOK = cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds); // Devuelve 0 si OK
     }
-
-    if (configOK == 0 && prodsOK == 0) {
+    printf(YELLOW"•) ");
+    if (config.configOK == 0 && prodsOK == 0) {
         printf(GREEN"\nCargado exitoso.\n"RESET);
-        printf("\nRuta de configuración: " BLUE "%s" RESET, ruta_config);
-        printf("\nRuta de productos: " MAGENTA "%s\n" RESET, ruta_config_out);
-        printf("\n" BG_BLUE BOLD " Los productos están cargados. "RESET"\n");
+        printf(RESET BLUE"\nConfiguración de Máquina\n"RESET);
+        printf(YELLOW"•) "BOLD"\nRuta de configuración: " BG_BLUE BOLD "%s" RESET, ruta_config);
+        printf(BOLD"\nRuta de productos:     " BG_BLUE BOLD "%s\n" RESET, config.ruta_productos);
+        printf("\n" RESET BLUE "Los productos están cargados. "RESET"\n\n");
         modo1ok = 0;
-    } else if (configOK == 0 && prodsOK != 0) {
+    } else if (config.configOK == 0 && prodsOK != 0) {
         printf(BG_RED BOLD"\nNo se encontraron productos. Realice mantenimiento.\n" RESET);
         modo1ok = -1;
-    } else if (configOK != 0) {
+    } else if (config.configOK != 0) {
         printf(BG_RED BOLD"\nNo se encontró configuración. Realice mantenimiento.\n" RESET);
         modo1ok = -1;
+    }
+
+    // Comprobamos si el usuario ha definido el STM32.
+    if (config.baudios == 0 || config.puertoCOM [0] == '\0'){
+        printf(BG_RED BOLD "\nError. STM32 no configurado.\n\n" RESET);
+        printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+    } else {
+        printf(RESET BG_WHITE MAGENTA "Configuración de STM32:\n"RESET);
+        printf(RESET BOLD"\nPuerto Serie actual:    "BG_WHITE MAGENTA"%s.\n"RESET, config.puertoCOM);
+        printf(BOLD "\nTasa de baudios actual: " BG_WHITE MAGENTA" %d.\n"RESET, config.baudios);
     }
 
     printf("\nPresione"YELLOW" ENTER para continuar...\n\n"RESET);
@@ -213,7 +243,7 @@ int main() {
             case 1: {
                 // MENU COMPRA
 
-                if (modo1ok == -1) {
+                if (modo1ok == -1) { // No dejamos entrar sin configurar
                     printf(BG_RED BOLD"\nError: Realice mantenimiento\n"RESET);
                     printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                     getchar();
@@ -221,7 +251,8 @@ int main() {
                     break;
                 }
 
-                if (modo1ok == 0) {
+                if (modo1ok == 0) { // si ok pues, adelante
+                    
                     listar_productos(maquina, nProds);
 
                     int selProd;
@@ -304,18 +335,28 @@ int main() {
                             // Guardado Productos
                             printf("\nGuardando productos...\n\n"RED);
 
-                            if (guardar_texto(ruta_config_out, maquina, nProds) == 0) {
+                            if (guardar_texto(config.ruta_productos, maquina, nProds) == 0) {
                                 printf(GREEN"Guardado exitoso.\n"RESET);
                             } else printf("Error de guardado.\n\n"RESET);
+							
+							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+                            system("cls");
+							
                             break;
                         }
 
                         case 2: {
                             // Carga productos
                             printf("\nCargando productos...\n\n");
-                            if (cargar_texto(ruta_config_out, maquina, MAXPRODS, &nProds) == 0) {
+                            if (cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds) == 0) {
                                 printf(GREEN"Cargado exitoso\n"RESET);
                             } else printf(RED"Error de carga.\n\n"RESET);
+							
+							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+                            system("cls");
+							
                             break;
                         }
 
@@ -327,6 +368,11 @@ int main() {
                             }
                             listar_productos(maquina, nProds);
                             printf("\nListado terminado.\n");
+							
+							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+                            system("cls");
+							
                             break;
                         }
 
@@ -348,7 +394,10 @@ int main() {
                             }
 
                             if (opcion2 == 0) {
-                                printf("Abandonando menu...");
+                                printf("\nNo se ha especificado. Saliendo...\n");
+								printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+								getchar();
+								system("cls");
                             }
 
                             for (int i = 1; i <= opcion2; i++) {
@@ -358,6 +407,10 @@ int main() {
 
                                 // &nProds ya que usamos paso por referencia y vamos a editar su valor directamente en memoria, no copiamos.
                             }
+							
+							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+                            system("cls");
 
                             break;
                         }
@@ -369,16 +422,30 @@ int main() {
                             if (nProds == 0) {
                                 printf(RED"Error: No hay productos\n"RESET);
                                 break;
+								
+								printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+								getchar();
+								system("cls");
+								
                             }
 
                             int testOp3 = leer_entero("\nIntroduzca la ID del producto a modificar: ", &opcion3);
 
                             if (testOp3 != 0) {
+								
                                 printf(RED"Error: entrada no valida.\n"RESET);
-                                return -1;
+								
+                                printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+								getchar();
+								system("cls");
                             }
 
                             modificar_producto(maquina, &nProds, opcion3);
+							
+							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+                            system("cls");
+							
                             break;
                         }
 
@@ -388,6 +455,11 @@ int main() {
 
                             if (nProds == 0) {
                                 printf(RED"Error: No hay productos\n"RESET);
+								
+								printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+								getchar();
+								system("cls");
+							
                                 break;
                             }
 
@@ -395,7 +467,9 @@ int main() {
 
                             if (testop4 != 0) {
                                 printf(RED"Error: entrada no valida.\n"RESET);
-                                return -1;
+                                printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+								getchar();
+								system("cls");
                             }
 
                             buscar_indice_por_id(maquina, nProds, opcion4);
@@ -405,79 +479,101 @@ int main() {
                         case 7: {
                             printf("\nCargando config.bin...\n");
 
-                            if (cargar_binario(ruta_config, ruta_config_out) == 0) {
+                            if (cargar_binario(ruta_config, &config) == 0) {
                                 printf(GREEN"\nCargado exitoso.\n"RESET);
                                 printf("Ruta actual: ");
-                                printf(BLUE"%s\n"RESET, ruta_config_out);
+                                printf(BLUE"%s\n"RESET, config.ruta_productos);
                             } else {
                                 printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n\n");
                             }
+							
+							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+                            system("cls");
+							
                             break;
                         }
 
                         case 8: {
                             printf("\nCreador de configuracion\n\n");
                             // Debe especificar donde esta productos.txt, sin " ".
+                            printf("Especifique de ruta de productos.\n");
                             printf("Ejemplo al escribir ruta:" BLUE " ruta/ruta2/data/productos.txt\n" RESET);
-                            printf(RED"No se deben incluir los caracteres "" al escribir la ruta.\n"RESET);
+                            printf(RED"No se deben incluir los caracteres """" al escribir la ruta.\n"RESET);
 
-                            int testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+                            int testRuta = leer_cadena("Ruta de productos deseada: ", config.ruta_productos, 256);
 
                             while (testRuta != 0) {
                                 printf(RED"Error: entrada no valida.\n"RESET);
-                                testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+                                testRuta = leer_cadena("Ruta de productos deseada: ", config.ruta_productos, 256);
                             }
 
-                            if (guardar_binario(ruta_config, ruta_config_out) == 0) {
+                            if (guardar_binario(ruta_config, &config) == 0) {
                                 printf(GREEN"\nGuardado exitoso.\n"RESET);
                                 printf("Ruta actual: ");
-                                printf(BLUE"%s\n"RESET, ruta_config_out);
+                                printf(BLUE"%s\n"RESET, config.ruta_productos);
                             } else {
-                                printf(RED"\nError en guardado. Saliendo..."RESET);
+                                printf(RED"\nError en guardado. Saliendo."RESET);
+								printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+								getchar();
+								system("cls");
                             }
+							
+							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+                            system("cls");
+							
                             break;
                         }
 
                         case 9: {
                             printf("\nEditor de configuracion\n");
 
-                            if (cargar_binario(ruta_config, ruta_config_out) != 0) {
+                            if (cargar_binario(ruta_config, &config) != 0) {
                                 printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n\n");
+								printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+								getchar();
+								system("cls");
                                 break;
                             }
 
-                            int testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+                            int testRuta = leer_cadena("Ruta de productos deseada: ", config.ruta_productos, 256);
                             while (testRuta != 0) {
                                 printf(RED"Error: no valido.\n"RESET);
-                                testRuta = leer_cadena("Ruta de productos deseada: ", ruta_config_out, 256);
+                                testRuta = leer_cadena("Ruta de productos deseada: ", config.ruta_productos, 256);
                             }
 
-                            if (guardar_binario(ruta_config, ruta_config_out) == 0) {
+                            if (guardar_binario(ruta_config, &config) == 0) {
                                 printf(GREEN"\nGuardado exitoso.\n"RESET);
                                 printf("Ruta actual: ");
-                                printf(BLUE"%s\n"RESET, ruta_config_out);
+                                printf(BLUE"%s\n"RESET, config.ruta_productos);
                             } else {
-                                printf(RED"\nError en guardado. Saliendo..."RESET);
+                                printf(RED"\nError en guardado. Saliendo."RESET);
                             }
+							
+							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+                            system("cls");
 
                             break;
                         }
 
                         case 10: {
-                            if (cargar_binario(ruta_config, ruta_config_out) == 0) {
+                            if (cargar_binario(ruta_config, &config) == 0) {
                                 printf("Ruta actual: ");
-                                printf(BLUE"%s\n"RESET, ruta_config_out);
+                                printf(BLUE"%s\n"RESET, config.ruta_productos);
                             } else {
                                 printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n\n");
                             }
+							
+							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+                            getchar();
+                            system("cls");
 
                             break;
                         }
 
                         case 0: {
-                            printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
-                            getchar();
-
                             system("cls");
                             break;
                         }
@@ -492,20 +588,21 @@ int main() {
             case 3: {
 
                 int opcionMenu;
-                printf("Bienvenido al asistente de gestión de hardware\n\n");
+                printf(RESET BG_MAGENTA BOLD "Bienvenido al asistente de gestión de hardware\n\n" RESET);
 
                 do {
 
-                    printf("1. Elegir puerto serie (comunicación)\n");
+                    printf(MAGENTA BOLD"1. Elegir puerto serie (comunicación)\n");
                     printf("2. Elegir tasa de baudios (comunicación)\n");
                     printf("3. Guardar configuración\n");
                     printf("4. Cargar configuración\n");
-                    printf("0. Salir\n");
+                    printf("5. Ver configuración\n");
+                    printf(RED"0. Salir\n"RESET);
 
                     int opcionTest = leer_entero("\nIntroduzca su opcion: ", &opcionMenu);
 
                     while (opcionTest != 0) {
-                        printf("\nOpcion invalida.\n");
+                        printf(BG_RED BOLD "\nError: Opcion invalida.\n" RESET);
                         opcionTest = leer_entero("\nIntroduzca su opcion: ", &opcionMenu);
                     }
                     switch (opcionMenu) {
@@ -524,8 +621,9 @@ int main() {
 
                             printf(RESET"\nHa escogido el puerto "BLUE"(COM%d).\n\n"RESET, PuertoUsuario);
 
-                            char PuertoUsuarioArray[20];
-                            sprintf(PuertoUsuarioArray, "\\\\.\\COM%d", PuertoUsuario);
+                            sprintf(config.puertoCOM, "\\\\.\\COM%d", PuertoUsuario);
+                            // Guardamos el puerto en el struct config.
+                            
 
                             printf("Presione" YELLOW " ENTER " RESET "para continuar.");
                             getchar();
@@ -534,11 +632,11 @@ int main() {
                             break;
 
                             /* Gemini: En C y C++, la barra invertida \ es un carácter de escape.
-                            * \\.\ es por el Win32 Device Namespace. Es algo que han inventado para hablar estrictamente de Hardware.
-                            * Como ya no estamos en MS-DOS, han tenido que crearlo, ya que MS-DOS iba de 0 a 9 COMs.
-                            * Si tenemos un COM10, 11... no funcionaría con COM%d. Hay que usar \\.\
-                            * Entonces, queda esa cosa tan larga debido a que para una \ hay que escribir \\.
-                           */
+                             * \\.\ es por el Win32 Device Namespace. Es algo que han inventado para hablar estrictamente de Hardware.
+                             * Como ya no estamos en MS-DOS, han tenido que crearlo, ya que MS-DOS iba de 0 a 9 COMs.
+                             * Si tenemos un COM10, 11... no funcionaría con COM%d. Hay que usar \\.\
+                             * Entonces, queda esa cosa tan larga debido a que para una \ hay que escribir \\.
+                            */
                         }
 
                         case 2: {
@@ -582,13 +680,73 @@ int main() {
                             }
 
                             printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, BaudiosUsuarioTasa);
+							config.baudios = BaudiosUsuarioTasa;
+							
                             printf("Presione" YELLOW " ENTER " RESET "para continuar.");
                             getchar();
+                            system("cls");
                             break;
                         }
 
                         case 3: {
+							
+							// Comprobamos si el usuario ha definido algo.
+							if (config.baudios == 0 || config.puertoCOM [0] == '\0'){
+								printf("\nError. Debe definir especificaciones\n\n");
+							    printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+							    getchar();
+							    system("cls");
+								break;
+							}
+							
+                            printf(MAGENTA BOLD"\nGuardado de Configuración\n" RESET);
+							
+							// Realmente este menu no hace nada, pero esta bien para ver todo
+							if (guardar_binario(ruta_config, &config) == 0) {
+							    printf(BG_WHITE BLUE "\nConfiguración guardada exitosamente\n" RESET);
+							    printf(RESET"\nHa escogido el puerto "BLUE"%s.\n"RESET, config.puertoCOM);
+							    printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, config.baudios);
+							} else {
+                                printf(BG_RED BOLD "Error: No se pudo guardar la configuración\n");
+                            }
+
+							printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                            getchar();
+                            system("cls");
+							
                             break;
+                        }
+                        
+                        case 4: {
+                            
+                            printf("\nCargando config.bin...\n");
+
+                            if (cargar_binario(ruta_config, &config) == 0) {
+                                printf(GREEN"\nCargado exitoso.\n"RESET);
+                                printf("Ruta actual: ");
+                                printf(BLUE"%s\n"RESET, ruta_config);
+                            } else {
+                                printf(RED"\nRuta no encontrada."RESET" Especifique ruta de configuración.\n\n");
+                            }
+							
+							printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                            getchar();
+                            system("cls");
+							
+                            break;
+                        }
+
+                        case 5: {
+
+                            system("cls");
+
+                            printf(RESET BG_MAGENTA BOLD "Configuración actual\n"RESET);
+                            printf(RESET"\nHa escogido el puerto "BLUE"%s.\n"RESET, config.puertoCOM);
+                            printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, config.baudios);
+
+                            printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                            getchar();
+                            system("cls");
                         }
 
                         case 0: {
@@ -597,7 +755,12 @@ int main() {
                         }
 
                         default: {
-                            printf("Error: no válido");
+                            printf(BG_RED BOLD"\nError: no válido\n"RESET);
+							
+							printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                            getchar();
+                            system("cls");
+							
                             break;
                         }
                     }
@@ -608,29 +771,39 @@ int main() {
 
             case 4: {
 
-                configOK = cargar_binario(ruta_config, ruta_config_out);
+                config.configOK = cargar_binario(ruta_config, &config); // igual que al start
 
-                if (configOK == 0) {
-                    prodsOK = cargar_texto(ruta_config_out, maquina, MAXPRODS, &nProds);
+                if (config.configOK == 0) {
+                    prodsOK = cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds);
                 }
-                if (configOK == 0 && prodsOK == 0) {
-                    printf(GREEN"Cargado exitoso.\n"RESET);
+                if (config.configOK == 0 && prodsOK == 0) {
+                    printf(RESET BG_BLUE BOLD"Configuración de Máquina\n"RESET);
                     printf("\nRuta de configuración: " BLUE "%s" RESET, ruta_config);
-                    printf("\nRuta de productos: " MAGENTA "%s\n" RESET, ruta_config_out);
+                    printf("\nRuta de productos: " MAGENTA "%s\n" RESET, config.ruta_productos);
                     printf("\n" BG_BLUE BOLD " Los productos están cargados. "RESET"\n");
                     modo1ok = 0;
-                } else if (configOK == 0 && prodsOK != 0) {
+                } else if (config.configOK == 0 && prodsOK != 0) {
                     printf(BG_RED BOLD"No se encontraron productos. Realice mantenimiento.\n" RESET);
                     modo1ok = -1;
-                } else if (configOK != 0) {
+                } else if (config.configOK != 0) {
                     printf(BG_RED BOLD"No se encontró configuración. Realice mantenimiento.\n" RESET);
                     modo1ok = -1;
                 }
 
-                printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
-                getchar();
+                // Comprobamos si el usuario ha definido algo.
+                if (config.baudios == 0 || config.puertoCOM [0] == '\0'){
+                    printf(BG_RED BOLD "\nError. STM32 no configurado.\n\n" RESET);
+                    printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                } else {
+                    printf(RESET BG_MAGENTA BOLD "Configuración de STM32:\n"RESET);
+                    printf(RESET"\nPuerto Serie actual: "BLUE"%s.\n"RESET, config.puertoCOM);
+                    printf("\nTasa de baudios actual:" BLUE" %d\n\n"RESET, config.baudios);
+                }
 
+                printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
+				getchar();
                 system("cls");
+				
                 break;
             }
 
@@ -638,7 +811,17 @@ int main() {
                 exit(1);
             }
 
-            default: printf(RED"\nError: no valido.");
+            default: {
+				
+				printf(BG_RED BOLD"\nError: no valido."RESET);
+				
+				printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                getchar();
+                system("cls");
+				
+				break;
+				
+			}
         }
     } while (opcionStart != 0);
 
