@@ -145,8 +145,8 @@ static void modificar_producto(Producto *arr, int *n, int id) {
 
 int main() {
 
-    // TODO: Struct configuracion STM32. Poder guardar y cargar configuracion STM32.
     // TODO: Tema de comunicacion PC-STM y lo del boton, monedas...
+    // TODO: Refinar interfaz, colores en modo compra.
 
     // CARGADO DE PRODUCTOS Y CONFIGURACIÓN.
 
@@ -181,33 +181,31 @@ int main() {
         config.configOK = 0; 
         prodsOK = cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds); // Devuelve 0 si OK
     }
-    printf(YELLOW"•) ");
     if (config.configOK == 0 && prodsOK == 0) {
         printf(GREEN"\nCargado exitoso.\n"RESET);
-        printf(RESET BLUE"\nConfiguración de Máquina\n"RESET);
-        printf(YELLOW"•) "BOLD"\nRuta de configuración: " BG_BLUE BOLD "%s" RESET, ruta_config);
-        printf(BOLD"\nRuta de productos:     " BG_BLUE BOLD "%s\n" RESET, config.ruta_productos);
+        printf(YELLOW"\n••) "RESET BLUE"Configuración de Máquina" YELLOW" (••\n"RESET);
+        printf(YELLOW"\n•) "GREEN"Ruta de configuración: " BLUE "%s" RESET, ruta_config);
+        printf(YELLOW"\n•) "GREEN"Ruta de productos    : " BLUE "%s\n" RESET, config.ruta_productos);
         printf("\n" RESET BLUE "Los productos están cargados. "RESET"\n\n");
         modo1ok = 0;
     } else if (config.configOK == 0 && prodsOK != 0) {
-        printf(BG_RED BOLD"\nNo se encontraron productos. Realice mantenimiento.\n" RESET);
+        printf(BG_RED BOLD"\nERROR: No se encontraron productos. Realice mantenimiento.\n" RESET);
         modo1ok = -1;
     } else if (config.configOK != 0) {
-        printf(BG_RED BOLD"\nNo se encontró configuración. Realice mantenimiento.\n" RESET);
+        printf(BG_RED BOLD"\nERROR: No se encontró configuración. Realice mantenimiento.\n" RESET);
         modo1ok = -1;
     }
 
     // Comprobamos si el usuario ha definido el STM32.
     if (config.baudios == 0 || config.puertoCOM [0] == '\0'){
-        printf(BG_RED BOLD "\nError. STM32 no configurado.\n\n" RESET);
-        printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+        printf(BG_RED BOLD "\nERROR: STM32 no configurado.\n" RESET);
     } else {
-        printf(RESET BG_WHITE MAGENTA "Configuración de STM32:\n"RESET);
-        printf(RESET BOLD"\nPuerto Serie actual:    "BG_WHITE MAGENTA"%s.\n"RESET, config.puertoCOM);
-        printf(BOLD "\nTasa de baudios actual: " BG_WHITE MAGENTA" %d.\n"RESET, config.baudios);
+        printf(YELLOW"••) "RESET MAGENTA "Configuración de STM32" YELLOW" (••\n"RESET);
+        printf(YELLOW"\n•) "RESET GREEN "Puerto Serie actual   : " MAGENTA "COM%d\n"RESET, config.puertoCOMdisplay);
+        printf(YELLOW"•) " GREEN "Tasa de baudios actual: " MAGENTA "%d\n"RESET, config.baudios);
     }
 
-    printf("\nPresione"YELLOW" ENTER para continuar...\n\n"RESET);
+    printf("\nPresione"YELLOW" ENTER " RESET "para continuar...\n\n"RESET);
 
     printf(BLUE"••••••••••••••••••••••••••••••••••••••••••••••••••••••\n\n"RESET);
 
@@ -618,6 +616,7 @@ int main() {
                             SetConsoleOutputCP(65001); // Pasamos a UTF-8 despues de usar la funcion con ANSI.
 
                             int PuertoUsuario = PedirPuertoSeriei();
+                            config.puertoCOMdisplay = PuertoUsuario;
 
                             printf(RESET"\nHa escogido el puerto "BLUE"(COM%d).\n\n"RESET, PuertoUsuario);
 
@@ -698,13 +697,14 @@ int main() {
 							    system("cls");
 								break;
 							}
-							
+
+							system("cls");
                             printf(MAGENTA BOLD"\nGuardado de Configuración\n" RESET);
 							
 							// Realmente este menu no hace nada, pero esta bien para ver todo
 							if (guardar_binario(ruta_config, &config) == 0) {
-							    printf(BG_WHITE BLUE "\nConfiguración guardada exitosamente\n" RESET);
-							    printf(RESET"\nHa escogido el puerto "BLUE"%s.\n"RESET, config.puertoCOM);
+							    printf(BG_MAGENTA BOLD "\nConfiguración guardada exitosamente\n" RESET);
+							    printf(RESET"\nHa escogido el puerto "BLUE"COM%d\n"RESET, config.puertoCOMdisplay);
 							    printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, config.baudios);
 							} else {
                                 printf(BG_RED BOLD "Error: No se pudo guardar la configuración\n");
@@ -741,8 +741,8 @@ int main() {
                             system("cls");
 
                             printf(RESET BG_MAGENTA BOLD "Configuración actual\n"RESET);
-                            printf(RESET"\nHa escogido el puerto "BLUE"%s.\n"RESET, config.puertoCOM);
-                            printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, config.baudios);
+                            printf(RESET"\nHa escogido el puerto "BLUE"COM%d\n"RESET, config.puertoCOMdisplay);
+                            printf("\nHa escogido la tasa de" BLUE" %d baudios\n\n"RESET, config.baudios);
 
                             printf("Presione" YELLOW " ENTER " RESET "para continuar.");
                             getchar();
@@ -773,31 +773,32 @@ int main() {
 
                 config.configOK = cargar_binario(ruta_config, &config); // igual que al start
 
-                if (config.configOK == 0) {
-                    prodsOK = cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds);
+                if (testConfigOK == 0) {
+                    config.configOK = 0;
+                    prodsOK = cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds); // Devuelve 0 si OK
                 }
                 if (config.configOK == 0 && prodsOK == 0) {
-                    printf(RESET BG_BLUE BOLD"Configuración de Máquina\n"RESET);
-                    printf("\nRuta de configuración: " BLUE "%s" RESET, ruta_config);
-                    printf("\nRuta de productos: " MAGENTA "%s\n" RESET, config.ruta_productos);
-                    printf("\n" BG_BLUE BOLD " Los productos están cargados. "RESET"\n");
+                    printf(GREEN"\n[•••] Visualizador de configuración [•••]\n"RESET);
+                    printf(YELLOW"\n••) "RESET BLUE"Configuración de Máquina" YELLOW" (••\n"RESET);
+                    printf(YELLOW"\n•) "GREEN"Ruta de configuración: " BLUE "%s" RESET, ruta_config);
+                    printf(YELLOW"\n•) "GREEN"Ruta de productos    : " BLUE "%s\n" RESET, config.ruta_productos);
+                    printf("\n" RESET BLUE "Los productos están cargados. "RESET"\n\n");
                     modo1ok = 0;
                 } else if (config.configOK == 0 && prodsOK != 0) {
-                    printf(BG_RED BOLD"No se encontraron productos. Realice mantenimiento.\n" RESET);
+                    printf(BG_RED BOLD"\nERROR: No se encontraron productos. Realice mantenimiento.\n" RESET);
                     modo1ok = -1;
                 } else if (config.configOK != 0) {
-                    printf(BG_RED BOLD"No se encontró configuración. Realice mantenimiento.\n" RESET);
+                    printf(BG_RED BOLD"\nERROR: No se encontró configuración. Realice mantenimiento.\n" RESET);
                     modo1ok = -1;
                 }
 
-                // Comprobamos si el usuario ha definido algo.
+                // Comprobamos si el usuario ha definido el STM32.
                 if (config.baudios == 0 || config.puertoCOM [0] == '\0'){
-                    printf(BG_RED BOLD "\nError. STM32 no configurado.\n\n" RESET);
-                    printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                    printf(BG_RED BOLD "\nERROR: STM32 no configurado.\n" RESET);
                 } else {
-                    printf(RESET BG_MAGENTA BOLD "Configuración de STM32:\n"RESET);
-                    printf(RESET"\nPuerto Serie actual: "BLUE"%s.\n"RESET, config.puertoCOM);
-                    printf("\nTasa de baudios actual:" BLUE" %d\n\n"RESET, config.baudios);
+                    printf(YELLOW"••) "RESET MAGENTA "Configuración de STM32" YELLOW" (••\n"RESET);
+                    printf(YELLOW"\n•) "RESET GREEN "Puerto Serie actual   : " MAGENTA "COM%d\n"RESET, config.puertoCOMdisplay);
+                    printf(YELLOW"•) " GREEN "Tasa de baudios actual: " MAGENTA "%d\n"RESET, config.baudios);
                 }
 
                 printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
