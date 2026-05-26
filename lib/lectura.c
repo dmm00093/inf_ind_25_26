@@ -6,19 +6,19 @@
 
 int leer_entero (const char *input, int *output)
 {
-    char buf[128];
+    char buf[128]; // Buffer de entrada.
 
     printf("%s", input);
 
-    fgets(buf, sizeof(buf), stdin);
+    fgets(buf, sizeof(buf), stdin); // fgets, obtiene entrada estandar de teclado que pasa al bufer de tamaño del bufer
 
-    size_t len = strlen(buf);
+    size_t len = strlen(buf); // longitud len es la longitud del string buffer que tendra cierto tamaño una vez metemos algo
 
     if (buf [0] == '\n') { // Si presiona ENTER el usuario sin escribir nada, error.
         return -1;
     }
 
-    if (len > 0 && buf[len-1] == '\n')
+    if (len > 0 && buf[len-1] == '\n') 
     {
         buf [len-1] = '\0'; // quitamos \n al final de la cadena.
     }
@@ -35,9 +35,9 @@ int leer_entero (const char *input, int *output)
         }
     }
 
-    errno = 0;
+    errno = 0; // ha ido bien, err no es 0.
 
-    long valor = strtol (buf, NULL, 10);
+    long valor = strtol (buf, NULL, 10); // string to long del buffer.
 
     *output = (int) valor; // es como scanf("", &x). *output se comportara como x, y hay que poner &.
 
@@ -67,7 +67,6 @@ int leer_float (const char *input, float *output)
     if (errno != 0 && *finptr != '\0') //  - errno != 0 → número demasiado grande o pequeño
                                       //  - *finptr != '\0' → hay basura después del número
     {
-        printf("Entrada no valida.");
         return -1;
     }
 
@@ -91,4 +90,5 @@ int leer_cadena (const char *input, char *output, size_t max_len)
         }
 
     return 0;
+	
 } // Leemos un string.
