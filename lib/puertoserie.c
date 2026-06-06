@@ -89,7 +89,7 @@ SSIZE_T read_port(HANDLE port, uint8_t * buffer, size_t size) {
     return received;
 }
 
-void ListarPuertosSerie () {
+int ListarPuertosSeriei () {
 
     // Listado puertos serie //
 
@@ -128,6 +128,7 @@ void ListarPuertosSerie () {
 
     int k = 0;
     int testError = 0;
+    int errorNum = 0; // Sirve para hacer break en maquinas de estado si no hay puertos serie o sale error
 
     printf(GREEN"Mostrando puertos serie.\n\n"RESET);
 
@@ -160,6 +161,7 @@ void ListarPuertosSerie () {
 
         k++; // Incrementamos k para recorrer el siguiente puerto.
         testError = testError + k;
+        errorNum = testError;
     }
 
     if (testError == 0) { // Caso de error, no hay puertos que mostrar o ha fallado la llamada a RegProps.
@@ -179,9 +181,9 @@ void ListarPuertosSerie () {
         }
 
         getchar();
-        exit (1);
     }
 
+    return errorNum;
     SetupDiDestroyDeviceInfoList(idTemp); // Limpiamos lista para que no hayan fugas de memoria si ha funcionado.
 
 } // Esta funcion lista los puertos disponibles usando setupAPI.

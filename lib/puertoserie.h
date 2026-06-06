@@ -37,7 +37,7 @@ int write_port(HANDLE port, uint8_t * buffer, size_t size);
 
 SSIZE_T read_port(HANDLE port, uint8_t * buffer, size_t size);
 
-void ListarPuertosSerie (); // Esta funcion lista los puertos disponibles usando setupAPI.
+int ListarPuertosSeriei (); // Esta funcion lista los puertos disponibles usando setupAPI.
 
 int PedirPuertoSeriei (); // esa i al final significa que es un int.
 
