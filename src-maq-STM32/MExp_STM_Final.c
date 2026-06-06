@@ -320,7 +320,7 @@ int main() {
                     printf("\nAntes de mandar al stm:\n");
                     printf("precio: %.2f - dinero: %.2f\n", carritoCLION, saldoCLION);
 
-                    // CONVERTIMOS A UINT16_T.
+                    // CONVERTIMOS A UINT16_T. El buffer del stm es suficientemente grande.
 
                     carritoSTM32 = (uint16_t)((carritoCLION * 100.0f) + 0.5f);
                     saldoSTM32 = (uint16_t)((saldoCLION * 100.0f) + 0.5f);
@@ -334,6 +334,10 @@ int main() {
 
                     printf("\nValores a mandar al stm:\n");
                     printf("precio al STM: %d - dinero al STM: %d", carritoSTM32, saldoSTM32);
+
+                    // Antes de mandar: PROCESAR los numeros trocitos a trocitos para que el STM lo pueda leer bien.
+                    // Separarlos por 1\n2\n3\n4\n5\n y asi sabemos hasta donde quedar (en el numero 5 el stm para de leer)
+                    // Ahorro de recursos.
 
                     getchar();
                     system("cls");
@@ -465,11 +469,11 @@ int main() {
 
                             if (nProds == 0) {
                                 printf(RED"Error: No hay productos\n"RESET);
-                                break;
-								
+
 								printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
 								getchar();
 								system("cls");
+                                break;
 								
                             }
 
