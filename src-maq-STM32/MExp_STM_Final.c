@@ -145,6 +145,8 @@ static void modificar_producto(Producto *arr, int *n, int id) {
 
 int main() {
 
+    // CONFIGURACION VARIABLES PARA STM32 //
+
     // TODO: Tema de comunicacion PC-STM y lo del boton, monedas...
     // TODO: Refinar interfaz, colores en modo compra.
 
@@ -216,17 +218,32 @@ int main() {
     // PÁGINA PRINCIPAL //
 
     int opcionStart;
-    double carrito = 0;
 
     do {
-        printf("Página de inicio.\n\n");
-        printf("1. Entrar a modo de compra\n");
-        printf("2. Gestión de la máquina (mantenimiento)\n");
-        printf("3. Gestión de hardware (STM32)\n");
-        printf("4. Ver configuración actual\n");
-        printf("0. Salir\n\n");
 
-        int testStart1 = leer_entero("Introduzca su opción: ", &opcionStart);
+        // Usé Gemini para hacer el menú "bonito". Es perder el tiempo lo contrario (06/06...)
+
+        // Borde superior
+        printf(CYAN "╔══════════════════════════════════════════════════╗\n" RESET);
+        printf(CYAN "║" BLUE "                 PÁGINA DE INICIO                 " RESET CYAN "║\n" RESET);
+        printf(CYAN "╠══════════════════════════════════════════════════╣\n" RESET);
+        printf(CYAN "║                                                  ║\n" RESET);
+
+        // Opciones del menú
+        printf(CYAN "║  " YELLOW BOLD "[1]" RESET BOLD " Entrar a modo de compra                    " CYAN " ║\n" RESET);
+        printf(CYAN "║  " YELLOW BOLD "[2]" RESET BOLD " Gestión de la máquina (mantenimiento)      " CYAN " ║\n" RESET);
+        printf(CYAN "║  " YELLOW BOLD "[3]" RESET BOLD " Gestión de hardware (STM32)                " CYAN " ║\n" RESET);
+        printf(CYAN "║  " YELLOW BOLD "[4]" RESET BOLD " Ver configuración actual                   " CYAN " ║\n" RESET);
+
+        printf(CYAN "║                                                  ║\n" RESET);
+
+        // Opción de salir (En Rojo)
+        printf(CYAN "║  " RED BOLD "[0]" RESET BOLD " Salir                                      " CYAN " ║\n" RESET);
+
+        // Borde inferior
+        printf(CYAN "╚══════════════════════════════════════════════════╝\n\n" RESET);
+
+        int testStart1 = leer_entero(GREEN BOLD "Introduzca su opción: " RESET, &opcionStart);
 
         while (testStart1 != 0) {
             printf("\nError: opción inválida\n\n");
@@ -250,13 +267,23 @@ int main() {
                 }
 
                 if (modo1ok == 0) { // si ok pues, adelante
+
+                    // CLION -> MANDA IMPORTE Y PRECIO DEL PRODUCTO.
+                    // CLION VA A CONVERTIR LOS FLOATS A UINT16_T (maximo de 100 euros, 14 bits)
+                    // MANDAMOS UINT16_T AL STM32 Y EL LO PROCESA Y DEVUELVE.
+
+                    float saldoCLION; // Importe introducido en float.
+                    float carritoCLION; // Carrito en float.
+
+                    uint16_t saldoSTM32; // Importe introducido en uint
+                    uint16_t carritoSTM32; // Carrito en uint.
                     
                     listar_productos(maquina, nProds);
 
                     int selProd;
                     int prodEncontrado = -1; // Testigo para decir si ha encontrado lo que quiere el usuario, o no.
 
-                    do {
+                    do { // Buscamos el producto que se quiere
                         int testProd = leer_entero("\nSELECCIONE PRODUCTO: ", &selProd);
 
                         while (testProd != 0) {
@@ -280,14 +307,33 @@ int main() {
 
                     printf("\nPRODUCTO SELECCIONADO: %s\n", maquina[prodEncontrado].nombre);
 
-                    carrito = maquina[prodEncontrado].precio;
-                    printf("\nIMPORTE A PAGAR: %.2f\n", carrito);
+                    carritoCLION = maquina[prodEncontrado].precio;
+                    printf("\nIMPORTE A PAGAR: %.2f\n", carritoCLION);
 
-                    const double testMoneda = 5.45;
-                    double vuelta = testMoneda - carrito;
+                    int testImporte = leer_float("Introduzca dinero: " , &saldoCLION);
 
-                    printf("SALDO: %.2f\n", testMoneda);
-                    printf("SU VUELTA ES: %.2f", vuelta);
+                    while (testImporte != 0) {
+                        printf(BG_RED "\nOpción inválida, vuelva a intentarlo.\n" RESET);
+                        testImporte = leer_float("SELECCIONE PRODUCTO:", &saldoCLION);
+                    }
+
+                    printf("\nAntes de mandar al stm:\n");
+                    printf("precio: %.2f - dinero: %.2f\n", carritoCLION, saldoCLION);
+
+                    // CONVERTIMOS A UINT16_T.
+
+                    carritoSTM32 = (uint16_t)((carritoCLION * 100.0f) + 0.5f);
+                    saldoSTM32 = (uint16_t)((saldoCLION * 100.0f) + 0.5f);
+
+                    // (uint16_t) -> por leches forzamos que sea un entero de 16 bits.
+                    // carritoCLION * 100.0f -> pasamos a centimos y forzamos que sea en float no en double.
+                    // le sumamos 0.5float es decir 0.5 en formato float no formato double, que es 64bit.
+                    // ese 0.5 es para que no tenga errores al truncar un 149.9999 a 149 centimos y no 150 cents.
+                    // el pc procesa esto de sobra... el problema es el stm que no, pero los enteros se los come
+                    // ...diria yo
+
+                    printf("\nValores a mandar al stm:\n");
+                    printf("precio al STM: %d - dinero al STM: %d", carritoSTM32, saldoSTM32);
 
                     getchar();
                     system("cls");
@@ -611,7 +657,14 @@ int main() {
 
                             printf("\n");
 
-                            ListarPuertosSerie(); // Listamos. En la función se usa su propio SetConsoleOutput.
+                            int errorListar = ListarPuertosSeriei(); // Listamos. En la función se usa su propio SetConsoleOutput.
+                            // La funcion la programe para devolver un int que si es 0 sale error. Esto lo usamos
+                            // por si tenemos que usar break y no queremos que siga haciendo el recorrido de pedir puert.
+
+                            if (errorListar == 0) { // Si no hay puertos --> adieu
+                                system("cls");
+                                break;
+                            }
 
                             SetConsoleOutputCP(65001); // Pasamos a UTF-8 despues de usar la funcion con ANSI.
 
@@ -718,8 +771,9 @@ int main() {
                         }
                         
                         case 4: {
-                            
-                            printf("\nCargando config.bin...\n");
+
+                            system("cls");
+                            printf("Cargando config.bin...\n");
 
                             if (cargar_binario(ruta_config, &config) == 0) {
                                 printf(GREEN"\nCargado exitoso.\n"RESET);
@@ -741,10 +795,11 @@ int main() {
                             system("cls");
 
                             printf(RESET BG_MAGENTA BOLD "Configuración actual\n"RESET);
-                            printf(RESET"\nHa escogido el puerto "BLUE"COM%d\n"RESET, config.puertoCOMdisplay);
-                            printf("\nHa escogido la tasa de" BLUE" %d baudios\n\n"RESET, config.baudios);
+                            printf(YELLOW"\n•) "RESET GREEN "Ruta actual             : " MAGENTA "%s"RESET, ruta_config);
+                            printf(YELLOW"\n•) "RESET GREEN "Puerto actual           : " MAGENTA "COM%d"RESET, config.puertoCOMdisplay);
+                            printf(YELLOW"\n•) "RESET GREEN "Tasa de baudios actuales: " MAGENTA "%d"RESET, config.baudios);
 
-                            printf("Presione" YELLOW " ENTER " RESET "para continuar.");
+                            printf("\n\nPresione" YELLOW " ENTER " RESET "para continuar.");
                             getchar();
                             system("cls");
                         }
@@ -778,7 +833,7 @@ int main() {
                     prodsOK = cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds); // Devuelve 0 si OK
                 }
                 if (config.configOK == 0 && prodsOK == 0) {
-                    printf(GREEN"\n[•••] Visualizador de configuración [•••]\n"RESET);
+                    printf(GREEN"[•••] Visualizador de configuración [•••]\n"RESET);
                     printf(YELLOW"\n••) "RESET BLUE"Configuración de Máquina" YELLOW" (••\n"RESET);
                     printf(YELLOW"\n•) "GREEN"Ruta de configuración: " BLUE "%s" RESET, ruta_config);
                     printf(YELLOW"\n•) "GREEN"Ruta de productos    : " BLUE "%s\n" RESET, config.ruta_productos);
