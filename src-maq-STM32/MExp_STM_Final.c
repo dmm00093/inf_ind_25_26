@@ -135,6 +135,28 @@ static void modificar_producto(Producto *arr, int *n, int id) {
         }
     }
 }
+
+static void reponer_stock(Producto *arr, int n) {
+    int id, cantidad;
+    printf(YELLOW "\n═══ ASISTENTE DE REPOSICIÓN DE STOCK ═══\n" RESET);
+    int testId = leer_entero("Introduzca la ID del producto a reponer: ", &id);
+    if (testId != 0) return;
+
+    // Usamos tu función de buscar para localizar la posición del array
+    int idx = buscar_indice_por_id(arr, n, id);
+    if (idx != -1) {
+        printf("\nStock actual de %s: %d uds.\n", arr[idx].nombre, arr[idx].stock);
+        int testCant = leer_entero("¿Cuántas unidades desea AÑADIR?: ", &cantidad);
+
+        if (testCant != 0 || cantidad < 0) {
+            printf(RED "Cantidad no válida.\n" RESET);
+            return;
+        }
+
+        arr[idx].stock += cantidad; // Sumamos las unidades al stock existente
+        printf(GREEN "\n[OK] Stock actualizado. Nuevo stock: %d uds.\n" RESET, arr[idx].stock);
+    }
+}
 /********************************************/
 
 /*
@@ -143,24 +165,23 @@ static void modificar_producto(Producto *arr, int *n, int id) {
 ********************************************
 */
 
-#define MAXPRODS 15 // Maximo Productos de Máquina
+//#define MAXPRODS 15 // Maximo Productos de Máquina
 
 int main() {
 
     // CONFIGURACION VARIABLES PARA STM32 //
 
-    // TODO: Tema de comunicacion PC-STM y lo del boton, monedas...
-    // TODO: Refinar interfaz, colores en modo compra.
+    // TODO: Llamar al puerto serie solamente una vez y cerrarlo cuando salgamos del programa.
 
     // CARGADO DE PRODUCTOS Y CONFIGURACIÓN.
 
     SetConsoleOutputCP(65001); // Pasamos a UTF-8
 
-    Producto maquina[MAXPRODS] = {0}; // iniciamos el array a {0} para evitar errores.
-    int nProds = 0;
-
     Configuracion config = {0}; // creamos array del struct. iniciamos en 0, si no, mal asunto (memoria basura).
     config.configOK = -1; // de primeras es -1.
+    config.MAXPRODS = 15;
+
+    int nProds = 0;
 
 	/* Cosas a considerar del struct:
 	 * 1. NO tenemos ruta_config_out. Ahora tenemos config.ruta_productos.
@@ -176,6 +197,15 @@ int main() {
     int prodsOK = -1; // Por defecto mal
     int modo1ok;
 
+    // Puntero. Reservamos memoria exacta para ese array de maquina expendedora con todos los productos.
+    Producto *maquina = (Producto*) malloc(config.MAXPRODS * sizeof(Producto));
+
+    if (maquina == NULL) {
+        printf(BG_RED BOLD "Error: No hay memoria disponible.\n" RESET);
+        getchar();
+        exit(1);
+    }
+
     printf(BLUE"••••••••••••••••••••••••••••••••••••••••••••••••••••••\n\n"RESET);
 
     printf(YELLOW"Iniciando Programa.\n\n"RESET);
@@ -183,7 +213,7 @@ int main() {
 
     if (testConfigOK == 0) {
         config.configOK = 0;
-        prodsOK = cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds); // Devuelve 0 si OK
+        prodsOK = cargar_texto(config.ruta_productos, maquina, config.MAXPRODS, &nProds); // Devuelve 0 si OK
     }
     if (config.configOK == 0 && prodsOK == 0) {
         printf(GREEN"\nCargado exitoso.\n"RESET);
@@ -306,6 +336,12 @@ int main() {
                                 BG_RED BOLD "\nNo se encuentra el producto." RESET BG_RED " Intentelo de nuevo\n"
                                 RESET);
                         }
+
+                        else if (maquina[prodEncontrado].stock <= 0) {
+                            printf(BG_RED BOLD "\nERROR: Producto AGOTADO.\n");
+                            getchar();
+                            break;
+                        }
                     } while (prodEncontrado == -1);
 
                     printf(GREEN "\nPRODUCTO SELECCIONADO: " YELLOW "%s\n" RESET, maquina[prodEncontrado].nombre);
@@ -408,7 +444,7 @@ int main() {
                         for (int i = 2 ; i <= 6 ; i++) {
                             testInt = cambioUSART[i] - '0';
 
-                            cambioCents = cambioCents + (testInt * mults[contador]);
+                            cambioCents = cambioCents + (testInt * mults[contador]); // procesamos los decimales.
 
                             contador = contador + 1;
                         }
@@ -418,6 +454,11 @@ int main() {
                         printf(BG_GREEN BOLD "\n\n[OK] COMPRA ACEPTADA CON ÉXITO\n\n" RESET);
 
                         printf(RESET BOLD "CAMBIO A RECIBIR:" GREEN BOLD " %.2f EUR\n\n" RESET, cambioFinal);
+
+                        // decrementamos el stock de la maquina aqui :
+
+                        maquina[prodEncontrado].stock--;
+                        guardar_texto(config.ruta_productos, maquina, nProds); // guardamos nuevo stock.
 
                     } else {
                         printf(YELLOW "\n\nRespuesta en bruto del STM32:\n" RESET);
@@ -450,10 +491,11 @@ int main() {
                     printf("| "MAGENTA"4 - Anadir Productos"RESET"     |\n");
                     printf("| "MAGENTA"5 - Modificar Productos"RESET"  |\n");
                     printf("| "MAGENTA"6 - Buscar Producto"RESET"      |\n");
-                    printf("| "GREEN"7 - Cargar Configuracion"RESET" |\n");
-                    printf("| "GREEN"8 - Crear Configuracion"RESET"  |\n");
-                    printf("| "GREEN"9 - Editar Configuracion"RESET" |\n");
-                    printf("| "GREEN"10 - Ver Configuracion   "RESET"|\n");
+                    printf("| "MAGENTA"7 - Reponer Productos"RESET"    |\n");
+                    printf("| "GREEN"8 - Cargar Configuracion"RESET" |\n");
+                    printf("| "GREEN"9 - Crear Configuracion"RESET"  |\n");
+                    printf("| "GREEN"10 - Editar Configuracion"RESET"|\n");
+                    printf("| "GREEN"11 - Ver Configuracion   "RESET"|\n");
                     printf("| "RED"0 - Salir a menú"RESET"         |\n");
                     printf(".--------------------------.\n");
 
@@ -483,7 +525,7 @@ int main() {
                         case 2: {
                             // Carga productos
                             printf("\nCargando productos...\n\n");
-                            if (cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds) == 0) {
+                            if (cargar_texto(config.ruta_productos, maquina, config.MAXPRODS, &nProds) == 0) {
                                 printf(GREEN"Cargado exitoso\n"RESET);
                             } else printf(RED"Error de carga.\n\n"RESET);
 
@@ -516,15 +558,18 @@ int main() {
 
                             int testOp2 = leer_entero("\nCuantos productos deseas adicionar: ", &opcion2);
 
-                            if (testOp2 != 0 || opcion2 + nProds > MAXPRODS) {
+                            if (testOp2 != 0 || opcion2 + nProds > config.MAXPRODS) {
                                 // Si se sale de la capacidad de la maquina, no podremos. O si es invalida entrada.
                                 printf("No valido.\n");
                                 if (testOp2 != 0) {
                                     printf(RED "Error: introduzca un dato válido" RESET);
                                 } else {
-                                    printf(RED"Error: no hay espacio en la máquina"RESET);
+                                    printf(BG_RED BOLD "Error: no hay espacio en la máquina"RESET);
+                                    printf(RED"\nLimite de máquina: %d" RESET, config.MAXPRODS);
                                 }
-                                return -1;
+                                getchar();
+                                system("cls");
+                                break;
                             }
 
                             if (opcion2 == 0) {
@@ -536,7 +581,7 @@ int main() {
 
                             for (int i = 1; i <= opcion2; i++) {
                                 printf("\nEspecifique su producto numero: %d\n", i);
-                                alta_producto(maquina, &nProds, MAXPRODS);
+                                alta_producto(maquina, &nProds, config.MAXPRODS);
                                 // Definimos MAXPRODS al inicio como constante. Es una maquina.
 
                                 // &nProds ya que usamos paso por referencia y vamos a editar su valor directamente en memoria, no copiamos.
@@ -611,6 +656,17 @@ int main() {
                         }
 
                         case 7: {
+                            reponer_stock(maquina, nProds);
+                            // ¡Importante guardar el archivo tras reponer!
+                            guardar_texto(config.ruta_productos, maquina, nProds);
+
+                            printf("\nPresione ENTER para continuar.");
+                            getchar();
+                            system("cls");
+                            break;
+                        }
+
+                        case 8: {
                             printf("\nCargando config.bin...\n");
 
                             if (cargar_binario(ruta_config, &config) == 0) {
@@ -628,7 +684,7 @@ int main() {
                             break;
                         }
 
-                        case 8: {
+                        case 9: {
                             printf("\nCreador de configuracion\n\n");
                             // Debe especificar donde esta productos.txt, sin " ".
                             printf("Especifique de ruta de productos.\n");
@@ -660,7 +716,7 @@ int main() {
                             break;
                         }
 
-                        case 9: {
+                        case 10: {
                             printf("\nEditor de configuracion\n");
 
                             if (cargar_binario(ruta_config, &config) != 0) {
@@ -692,7 +748,7 @@ int main() {
                             break;
                         }
 
-                        case 10: {
+                        case 11: {
                             if (cargar_binario(ruta_config, &config) == 0) {
                                 printf("Ruta actual: ");
                                 printf(BLUE"%s\n"RESET, config.ruta_productos);
@@ -920,7 +976,7 @@ int main() {
 
                 if (testConfigOK == 0) {
                     config.configOK = 0;
-                    prodsOK = cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds); // Devuelve 0 si OK
+                    prodsOK = cargar_texto(config.ruta_productos, maquina, config.MAXPRODS, &nProds); // Devuelve 0 si OK
                 }
                 if (config.configOK == 0 && prodsOK == 0) {
                     printf(GREEN"[•••] Visualizador de configuración [•••]\n"RESET);
@@ -944,6 +1000,7 @@ int main() {
                     printf(YELLOW"••) "RESET MAGENTA "Configuración de STM32" YELLOW" (••\n"RESET);
                     printf(YELLOW"\n•) "RESET GREEN "Puerto Serie actual   : " MAGENTA "COM%d\n"RESET, config.puertoCOMdisplay);
                     printf(YELLOW"•) " GREEN "Tasa de baudios actual: " MAGENTA "%d\n"RESET, config.baudios);
+                    printf(YELLOW"•) " GREEN "Capacidad de máquina actual: " MAGENTA "%d\n"RESET, config.MAXPRODS);
                 }
 
                 printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
@@ -971,5 +1028,6 @@ int main() {
         }
     } while (opcionStart != 0);
 
+    free(maquina);
     return 0;
 }
