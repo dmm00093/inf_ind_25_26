@@ -30,21 +30,23 @@
 /********************************************/
 static void imprimir_producto(const Producto prod) { // ver main, definimos prod como subproductos
 
-    printf("ID: %d | %-20s | %.2f EUR | Stock: %d\n", prod.id, prod.nombre, prod.precio, prod.stock);
+    printf(CYAN "  ID: " YELLOW "%d" RESET " | " GREEN "%-20s" RESET " | " MAGENTA "%.2f EUR" RESET " | " BLUE "Stock: %d" RESET "\n", prod.id, prod.nombre, prod.precio, prod.stock);
     // Basicamente imprimimos los productos que estan contenidos en ese array de Producto.
+
+    // Colores y puesto "bonito" por Gemini, es perder el tiempo lo contrario para este tipo de cosas.
 }
 
 static void listar_productos(const Producto *arr, int n) { // hay que pasar tódo a un array. ver main
-    printf("|------------------- PRODUCTOS -------------------|\n");
+    printf(BOLD "\n" BG_BLUE "                    Escoja su aperitivo                  " RESET "\n\n");
 
     for (int i = 0; i < n; i++) {
         imprimir_producto(arr[i]); // vemos cada subproducto en el array definido en main (maquina, por ej)
     }
-    printf("|-------------------------------------------------|\n");
+    printf(BOLD "\n" BG_BLUE "                                                         " RESET "\n\n");
 }
 
 static void alta_producto(Producto *arr, int *n, int max) {
-    
+
     // Comprobamos si hay espacio:
 
     if (*n >= max) {
@@ -84,7 +86,7 @@ static void alta_producto(Producto *arr, int *n, int max) {
     (*n)++; // Incrementamos el numero de productos ya que hemos metido uno nuevo.
 }
 
-int buscar_indice_por_id(Producto *arr, int n, int id) { 
+int buscar_indice_por_id(Producto *arr, int n, int id) {
     for (int i = 0; i < n; i++) {
         if (arr[i].id == id) {
             printf("La [ID: %d] corresponde al indice [%d] del producto: [%s].\n",
@@ -137,7 +139,7 @@ static void modificar_producto(Producto *arr, int *n, int id) {
 
 /*
 ********************************************
-             Cuerpo de Programa 
+             Cuerpo de Programa
 ********************************************
 */
 
@@ -156,10 +158,10 @@ int main() {
 
     Producto maquina[MAXPRODS] = {0}; // iniciamos el array a {0} para evitar errores.
     int nProds = 0;
-    
+
     Configuracion config = {0}; // creamos array del struct. iniciamos en 0, si no, mal asunto (memoria basura).
     config.configOK = -1; // de primeras es -1.
-	
+
 	/* Cosas a considerar del struct:
 	 * 1. NO tenemos ruta_config_out. Ahora tenemos config.ruta_productos.
 	 * 2. Si queremos acceder al struct habrá que usar &config o el nombre que le demos.
@@ -169,7 +171,7 @@ int main() {
     char ruta_config[256] = "../cfg/config.bin"; // Alocamos ruta del config para cambiarla a nuestro gusto.
 
     int testConfigOK = cargar_binario(ruta_config, &config); // La funcion devuelve un 0 si ok
-                                                             // Tira la info a &config, y accede a el, si no, mal asunto. 
+                                                             // Tira la info a &config, y accede a el, si no, mal asunto.
                                                              // Asi sabe donde esta el struct.
     int prodsOK = -1; // Por defecto mal
     int modo1ok;
@@ -180,7 +182,7 @@ int main() {
     printf("Cargando configuracion...\n");
 
     if (testConfigOK == 0) {
-        config.configOK = 0; 
+        config.configOK = 0;
         prodsOK = cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds); // Devuelve 0 si OK
     }
     if (config.configOK == 0 && prodsOK == 0) {
@@ -277,18 +279,19 @@ int main() {
 
                     uint16_t saldoSTM32; // Importe introducido en uint
                     uint16_t carritoSTM32; // Carrito en uint.
-                    
+
                     listar_productos(maquina, nProds);
 
                     int selProd;
                     int prodEncontrado = -1; // Testigo para decir si ha encontrado lo que quiere el usuario, o no.
 
-                    do { // Buscamos el producto que se quiere
-                        int testProd = leer_entero("\nSELECCIONE PRODUCTO: ", &selProd);
+                    do {
+                        // Buscamos el producto que se quiere
+                        int testProd = leer_entero(CYAN "\nSELECCIONE PRODUCTO: " RESET, &selProd);
 
                         while (testProd != 0) {
                             printf(BG_RED "\nOpción inválida, vuelva a intentarlo.\n" RESET);
-                            testProd = leer_entero("SELECCIONE PRODUCTO:", &selProd);
+                            testProd = leer_entero(CYAN "SELECCIONE PRODUCTO:" RESET, &selProd);
                         }
 
                         for (int i = 0; i < nProds; i++) {
@@ -305,48 +308,46 @@ int main() {
                         }
                     } while (prodEncontrado == -1);
 
-                    printf("\nPRODUCTO SELECCIONADO: %s\n", maquina[prodEncontrado].nombre);
+                    printf(GREEN "\nPRODUCTO SELECCIONADO: " YELLOW "%s\n" RESET, maquina[prodEncontrado].nombre);
 
                     carritoCLION = maquina[prodEncontrado].precio;
-                    printf("\nIMPORTE A PAGAR: %.2f\n", carritoCLION);
+                    printf(MAGENTA "\nIMPORTE A PAGAR: " YELLOW "%.2f\n" RESET, carritoCLION);
 
-                    int testImporte = leer_float("Introduzca dinero: " , &saldoCLION);
+                    int testImporte = leer_float(BLUE "\nINTRODUZCA IMPORTE: " RESET YELLOW, &saldoCLION);
 
                     while (testImporte != 0) {
                         printf(BG_RED "\nOpción inválida, vuelva a intentarlo.\n" RESET);
-                        testImporte = leer_float("SELECCIONE PRODUCTO:", &saldoCLION);
+                        testImporte = leer_float(BLUE "SELECCIONE PRODUCTO:" RESET YELLOW, &saldoCLION);
                     }
 
-                    if (saldoCLION > 100.0f) { // Maximo de 100 euros admisibles (10.000 centimos).
-                        printf("\nImporte máximo de 100 EUR.");
+                    printf(RESET "" RESET);
+
+                    if (saldoCLION > 100.0f) {
+                        // Maximo de 100 euros admisibles (10.000 centimos).
+                        printf(RED "\nImporte máximo de 100 EUR." RESET);
                         while (saldoCLION > 100.0f || testImporte != 0) {
                             printf(BG_RED "\nOpción inválida, vuelva a intentarlo.\n" RESET);
-                            testImporte = leer_float("SELECCIONE PRODUCTO:", &saldoCLION);
+                            testImporte = leer_float(CYAN "SELECCIONE PRODUCTO:" RESET, &saldoCLION);
                         }
                     }
 
-                    printf("\nAntes de mandar al stm:\n");
-                    printf("precio: %.2f - dinero: %.2f\n", carritoCLION, saldoCLION);
-
                     // CONVERTIMOS A UINT16_T. El buffer del stm es suficientemente grande.
 
-                    carritoSTM32 = (uint16_t)((carritoCLION * 100.0f) + 0.5f);
-                    saldoSTM32 = (uint16_t)((saldoCLION * 100.0f) + 0.5f);
+                    carritoSTM32 = (uint16_t) ((carritoCLION * 100.0f) + 0.5f);
+                    saldoSTM32 = (uint16_t) ((saldoCLION * 100.0f) + 0.5f);
 
-                    // (uint16_t) -> por leches forzamos que sea un entero de 16 bits.
-                    // carritoCLION * 100.0f -> pasamos a centimos y forzamos que sea en float no en double.
-                    // le sumamos 0.5float es decir 0.5 en formato float no formato double, que es 64bit.
-                    // ese 0.5 es para que no tenga errores al truncar un 149.9999 a 149 centimos y no 150 cents.
-                    // el pc procesa esto de sobra... el problema es el stm que no, pero los enteros se los come
-                    // ...diria yo
-
-                    printf("\nValores a mandar al stm:\n");
-                    printf("precio al STM: %d - dinero al STM: %d\n\n", carritoSTM32, saldoSTM32);
+                    /* (uint16_t) -> por leches forzamos que sea un entero de 16 bits.
+                     * carritoCLION * 100.0f -> pasamos a centimos y forzamos que sea en float no en double.
+                     * le sumamos 0.5float es decir 0.5 en formato float no formato double, que es 64bit.
+                     * ese 0.5 es para que no tenga errores al truncar un 149.9999 a 149 centimos y no 150 cents.
+                     * el pc procesa esto de sobra... el problema es el stm que no, pero los enteros se los come
+                     * ...diria yo
+                     */
 
                     // Antes de mandar: PROCESAR los numeros trocitos a trocitos para que el STM lo pueda leer bien.
                     // Ahorro de recursos.
 
-                    char mensajeSTM [20]; // Creo un string para los numeros
+                    char mensajeSTM[20]; // Creo un string para los numeros
 
                     // si carrito es 150 y saldo es 100 -> mandamos -> 150\n100\n (sabemos cuando empieza y termina).
                     sprintf(mensajeSTM, "%05u\n%05u\n", carritoSTM32, saldoSTM32); // mandamos
@@ -354,26 +355,47 @@ int main() {
                     // Quiero hacer que mis numeros llegen en cinco cifras. Por ejemplo, 00862\n00953.
                     // Asi puedo hacer una funcion mas directa para procesar. Lo de 05u lo desconocia -> Gemini.
 
-                    printf("Mensaje procesado: %s\n\n", mensajeSTM);
-
                     // Enviamos
                     // B1 USER: the user button is connected to the I/O PC13 (pin 2) of the STM32 microcontroller.
 
-                    uint8_t buff[100]={0}; // Buffer lleno de ceros.
-                    HANDLE port  = openSerial(config.puertoCOM, config.baudios); // Abrimos conexión.
+                    uint8_t buff[100] = {0}; // Buffer lleno de ceros.
+                    HANDLE port = openSerial(config.puertoCOM, config.baudios); // Abrimos conexión.
 
-                    read_port(port, buff,sizeof(buff));
+                    read_port(port, buff, sizeof(buff));
                     // Intenta leer si el STM32 había enviado algo viejo mientras se conectaba.
                     // Como el buffer inicial buff se sobrescribe, esto básicamente limpia la línea.
 
-                    write_port(port, mensajeSTM,strlen(mensajeSTM)); // Envía texto.
+                    write_port(port, mensajeSTM, strlen(mensajeSTM)); // Envía texto.
 
                     FlushFileBuffers(port); // Aseguramos que mande el mensaje entero.
 
                     // DISPLAY EN CONSOLA //
-                    read_port(port,buff,sizeof(buff)); // Escucha respuesta de STM32. Saca el mensaje de la bandeja de COMx.
-                    printf(buff); // Guardamos respuesta en buffer, y lo imprimimos en la consola.
+
+                    read_port(port, buff, sizeof(buff));
+                    printf(buff);
+
+                    // Escucha respuesta de STM32. Saca el mensaje de la bandeja de COMx.
+
+                    // Respuesta de maquina a traves del stm
+
+                    printf(BG_BLUE BOLD "               Resultado de su compra               " RESET);
+
+                    if (buff[0] == '-') {
+                        printf(BG_RED "\n\n[ERROR] OPERACIÓN RECHAZADA\n" RESET);
+                        printf(RED "Detalle: Importe insuficiente o máquina sin cambio.\n\n" RESET);
+
+                    } else if (buff[0] == '0') {
+
+                        printf(BG_GREEN "\n\n[OK]" RESET GREEN" COMPRA ACEPTADA CON ÉXITO\n\n" RESET);
+
+                    } else {
+                        printf(YELLOW "\n\nRespuesta en bruto del STM32:\n" RESET);
+                        printf("%s\n", buff);
+                    }
+                    printf(BG_BLUE "                                                    " RESET);
+
                     CloseHandle(port); // Cerramos el puerto.
+                    FlushFileBuffers(port); // Aseguramos que mande el mensaje entero.
 
                     getchar();
                     system("cls");
@@ -422,11 +444,11 @@ int main() {
                             if (guardar_texto(config.ruta_productos, maquina, nProds) == 0) {
                                 printf(GREEN"Guardado exitoso.\n"RESET);
                             } else printf("Error de guardado.\n\n"RESET);
-							
+
 							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                             getchar();
                             system("cls");
-							
+
                             break;
                         }
 
@@ -436,11 +458,11 @@ int main() {
                             if (cargar_texto(config.ruta_productos, maquina, MAXPRODS, &nProds) == 0) {
                                 printf(GREEN"Cargado exitoso\n"RESET);
                             } else printf(RED"Error de carga.\n\n"RESET);
-							
+
 							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                             getchar();
                             system("cls");
-							
+
                             break;
                         }
 
@@ -452,11 +474,11 @@ int main() {
                             }
                             listar_productos(maquina, nProds);
                             printf("\nListado terminado.\n");
-							
+
 							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                             getchar();
                             system("cls");
-							
+
                             break;
                         }
 
@@ -491,7 +513,7 @@ int main() {
 
                                 // &nProds ya que usamos paso por referencia y vamos a editar su valor directamente en memoria, no copiamos.
                             }
-							
+
 							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                             getchar();
                             system("cls");
@@ -510,26 +532,26 @@ int main() {
 								getchar();
 								system("cls");
                                 break;
-								
+
                             }
 
                             int testOp3 = leer_entero("\nIntroduzca la ID del producto a modificar: ", &opcion3);
 
                             if (testOp3 != 0) {
-								
+
                                 printf(RED"Error: entrada no valida.\n"RESET);
-								
+
                                 printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
 								getchar();
 								system("cls");
                             }
 
                             modificar_producto(maquina, &nProds, opcion3);
-							
+
 							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                             getchar();
                             system("cls");
-							
+
                             break;
                         }
 
@@ -539,11 +561,11 @@ int main() {
 
                             if (nProds == 0) {
                                 printf(RED"Error: No hay productos\n"RESET);
-								
+
 								printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
 								getchar();
 								system("cls");
-							
+
                                 break;
                             }
 
@@ -570,11 +592,11 @@ int main() {
                             } else {
                                 printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n\n");
                             }
-							
+
 							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                             getchar();
                             system("cls");
-							
+
                             break;
                         }
 
@@ -602,11 +624,11 @@ int main() {
 								getchar();
 								system("cls");
                             }
-							
+
 							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                             getchar();
                             system("cls");
-							
+
                             break;
                         }
 
@@ -634,7 +656,7 @@ int main() {
                             } else {
                                 printf(RED"\nError en guardado. Saliendo."RESET);
                             }
-							
+
 							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                             getchar();
                             system("cls");
@@ -649,7 +671,7 @@ int main() {
                             } else {
                                 printf(RED"\nRuta no encontrada."RESET" Especifique ruta de productos.\n\n");
                             }
-							
+
 							printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
                             getchar();
                             system("cls");
@@ -715,7 +737,7 @@ int main() {
 
                             sprintf(config.puertoCOM, "\\\\.\\COM%d", PuertoUsuario);
                             // Guardamos el puerto en el struct config.
-                            
+
 
                             printf("Presione" YELLOW " ENTER " RESET "para continuar.");
                             getchar();
@@ -773,7 +795,7 @@ int main() {
 
                             printf("\nHa escogido la tasa de" BLUE" %d baudios.\n\n"RESET, BaudiosUsuarioTasa);
 							config.baudios = BaudiosUsuarioTasa;
-							
+
                             printf("Presione" YELLOW " ENTER " RESET "para continuar.");
                             getchar();
                             system("cls");
@@ -781,7 +803,7 @@ int main() {
                         }
 
                         case 3: {
-							
+
 							// Comprobamos si el usuario ha definido algo.
 							if (config.baudios == 0 || config.puertoCOM [0] == '\0'){
 								printf("\nError. Debe definir especificaciones\n\n");
@@ -793,7 +815,7 @@ int main() {
 
 							system("cls");
                             printf(MAGENTA BOLD"\nGuardado de Configuración\n" RESET);
-							
+
 							// Realmente este menu no hace nada, pero esta bien para ver todo
 							if (guardar_binario(ruta_config, &config) == 0) {
 							    printf(BG_MAGENTA BOLD "\nConfiguración guardada exitosamente\n" RESET);
@@ -806,10 +828,10 @@ int main() {
 							printf("Presione" YELLOW " ENTER " RESET "para continuar.");
                             getchar();
                             system("cls");
-							
+
                             break;
                         }
-                        
+
                         case 4: {
 
                             system("cls");
@@ -822,11 +844,11 @@ int main() {
                             } else {
                                 printf(RED"\nRuta no encontrada."RESET" Especifique ruta de configuración.\n\n");
                             }
-							
+
 							printf("Presione" YELLOW " ENTER " RESET "para continuar.");
                             getchar();
                             system("cls");
-							
+
                             break;
                         }
 
@@ -851,11 +873,11 @@ int main() {
 
                         default: {
                             printf(BG_RED BOLD"\nError: no válido\n"RESET);
-							
+
 							printf("Presione" YELLOW " ENTER " RESET "para continuar.");
                             getchar();
                             system("cls");
-							
+
                             break;
                         }
                     }
@@ -899,7 +921,7 @@ int main() {
                 printf("\nPresione" YELLOW " ENTER" RESET " para continuar.");
 				getchar();
                 system("cls");
-				
+
                 break;
             }
 
@@ -908,15 +930,15 @@ int main() {
             }
 
             default: {
-				
+
 				printf(BG_RED BOLD"\nError: no valido."RESET);
-				
+
 				printf("Presione" YELLOW " ENTER " RESET "para continuar.");
                 getchar();
                 system("cls");
-				
+
 				break;
-				
+
 			}
         }
     } while (opcionStart != 0);
