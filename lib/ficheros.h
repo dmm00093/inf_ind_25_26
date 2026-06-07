@@ -27,6 +27,7 @@ typedef struct {
 				  // La idea no fue mia, fue por gemini. Porque me estaba volviendo loco haciendo todo otra vez en el main.
 				  // configOK es 0 -> OK todo 
 				  // configOK es .1 -> kaput
+	int MAXPRODS;
 } Configuracion;
 #pragma pack(pop)
 
