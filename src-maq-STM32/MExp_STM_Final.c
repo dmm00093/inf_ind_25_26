@@ -224,7 +224,7 @@ int main() {
         // Usé Gemini para hacer el menú "bonito". Es perder el tiempo lo contrario (06/06...)
 
         // Borde superior
-        printf(CYAN "╔══════════════════════════════════════════════════╗\n" RESET);
+        printf(RESET CYAN "╔══════════════════════════════════════════════════╗\n" RESET);
         printf(CYAN "║" BLUE "                 PÁGINA DE INICIO                 " RESET CYAN "║\n" RESET);
         printf(CYAN "╠══════════════════════════════════════════════════╣\n" RESET);
         printf(CYAN "║                                                  ║\n" RESET);
@@ -317,6 +317,14 @@ int main() {
                         testImporte = leer_float("SELECCIONE PRODUCTO:", &saldoCLION);
                     }
 
+                    if (saldoCLION > 100.0f) { // Maximo de 100 euros admisibles (10.000 centimos).
+                        printf("\nImporte máximo de 100 EUR.");
+                        while (saldoCLION > 100.0f || testImporte != 0) {
+                            printf(BG_RED "\nOpción inválida, vuelva a intentarlo.\n" RESET);
+                            testImporte = leer_float("SELECCIONE PRODUCTO:", &saldoCLION);
+                        }
+                    }
+
                     printf("\nAntes de mandar al stm:\n");
                     printf("precio: %.2f - dinero: %.2f\n", carritoCLION, saldoCLION);
 
@@ -333,11 +341,39 @@ int main() {
                     // ...diria yo
 
                     printf("\nValores a mandar al stm:\n");
-                    printf("precio al STM: %d - dinero al STM: %d", carritoSTM32, saldoSTM32);
+                    printf("precio al STM: %d - dinero al STM: %d\n\n", carritoSTM32, saldoSTM32);
 
                     // Antes de mandar: PROCESAR los numeros trocitos a trocitos para que el STM lo pueda leer bien.
-                    // Separarlos por 1\n2\n3\n4\n5\n y asi sabemos hasta donde quedar (en el numero 5 el stm para de leer)
                     // Ahorro de recursos.
+
+                    char mensajeSTM [20]; // Creo un string para los numeros
+
+                    // si carrito es 150 y saldo es 100 -> mandamos -> 150\n100\n (sabemos cuando empieza y termina).
+                    sprintf(mensajeSTM, "%05u\n%05u\n", carritoSTM32, saldoSTM32); // mandamos
+
+                    // Quiero hacer que mis numeros llegen en cinco cifras. Por ejemplo, 00862\n00953.
+                    // Asi puedo hacer una funcion mas directa para procesar. Lo de 05u lo desconocia -> Gemini.
+
+                    printf("Mensaje procesado: %s\n\n", mensajeSTM);
+
+                    // Enviamos
+                    // B1 USER: the user button is connected to the I/O PC13 (pin 2) of the STM32 microcontroller.
+
+                    uint8_t buff[100]={0}; // Buffer lleno de ceros.
+                    HANDLE port  = openSerial(config.puertoCOM, config.baudios); // Abrimos conexión.
+
+                    read_port(port, buff,sizeof(buff));
+                    // Intenta leer si el STM32 había enviado algo viejo mientras se conectaba.
+                    // Como el buffer inicial buff se sobrescribe, esto básicamente limpia la línea.
+
+                    write_port(port, mensajeSTM,strlen(mensajeSTM)); // Envía texto.
+
+                    FlushFileBuffers(port); // Aseguramos que mande el mensaje entero.
+
+                    // DISPLAY EN CONSOLA //
+                    read_port(port,buff,sizeof(buff)); // Escucha respuesta de STM32. Saca el mensaje de la bandeja de COMx.
+                    printf(buff); // Guardamos respuesta en buffer, y lo imprimimos en la consola.
+                    CloseHandle(port); // Cerramos el puerto.
 
                     getchar();
                     system("cls");
