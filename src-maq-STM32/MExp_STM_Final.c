@@ -311,13 +311,13 @@ int main() {
                     printf(GREEN "\nPRODUCTO SELECCIONADO: " YELLOW "%s\n" RESET, maquina[prodEncontrado].nombre);
 
                     carritoCLION = maquina[prodEncontrado].precio;
-                    printf(MAGENTA "\nIMPORTE A PAGAR: " YELLOW "%.2f\n" RESET, carritoCLION);
+                    printf(MAGENTA "\nIMPORTE A PAGAR: " YELLOW "%.2f EUR\n" RESET, carritoCLION);
 
-                    int testImporte = leer_float(BLUE "\nINTRODUZCA IMPORTE: " RESET YELLOW, &saldoCLION);
+                    int testImporte = leer_float(BLUE "\nINTRODUZCA IMPORTE" YELLOW" (EUR): " RESET YELLOW, &saldoCLION);
 
                     while (testImporte != 0) {
                         printf(BG_RED "\nOpción inválida, vuelva a intentarlo.\n" RESET);
-                        testImporte = leer_float(BLUE "SELECCIONE PRODUCTO:" RESET YELLOW, &saldoCLION);
+                        testImporte = leer_float(BLUE "INTRODUZCA IMPORTE:" YELLOW " (EUR)" RESET YELLOW, &saldoCLION);
                     }
 
                     printf(RESET "" RESET);
@@ -372,30 +372,58 @@ int main() {
                     // DISPLAY EN CONSOLA //
 
                     read_port(port, buff, sizeof(buff));
-                    printf(buff);
+                    // printf(buff); Escucha respuesta de STM32. Saca el mensaje de la bandeja de COMx.
 
-                    // Escucha respuesta de STM32. Saca el mensaje de la bandeja de COMx.
+                    // RESPUESTA DE LA MAQUINA A TRAVES DEL STM //
 
-                    // Respuesta de maquina a traves del stm
+                    // 1º - asigno el buffer recibido a traves del puerto com a un nuevo string que despedazaré
+                    // y esto lo haré para obtener el estado de la compra y si es exitosa el cambio.
 
-                    printf(BG_BLUE BOLD "               Resultado de su compra               " RESET);
+                    char cambioUSART [20] = {0};
 
-                    if (buff[0] == '-') {
-                        printf(BG_RED "\n\n[ERROR] OPERACIÓN RECHAZADA\n" RESET);
-                        printf(RED "Detalle: Importe insuficiente o máquina sin cambio.\n\n" RESET);
-
-                    } else if (buff[0] == '0') {
-
-                        printf(BG_GREEN "\n\n[OK]" RESET GREEN" COMPRA ACEPTADA CON ÉXITO\n\n" RESET);
-
-                    } else {
-                        printf(YELLOW "\n\nRespuesta en bruto del STM32:\n" RESET);
-                        printf("%s\n", buff);
-                    }
-                    printf(BG_BLUE "                                                    " RESET);
+                    memcpy(cambioUSART, (char*)buff, sizeof(cambioUSART) - 1); // copio el buffer a mi string
 
                     CloseHandle(port); // Cerramos el puerto.
                     FlushFileBuffers(port); // Aseguramos que mande el mensaje entero.
+
+                    // Con mi string asegurado pues lo trituro ñamñam
+
+                    // 2º - Interfaz de resultado de compra:
+
+                    printf(BG_BLUE BOLD "\n                 Resultado de su compra                  " RESET);
+
+                    if (cambioUSART[0] == '-') {
+                        printf(BG_RED "\n\n[ERROR] OPERACIÓN RECHAZADA\n" RESET);
+                        printf(RED "Detalle: Importe insuficiente o máquina sin cambio.\n\n" RESET);
+
+                    } else if (cambioUSART[0] == '0') {
+
+                        // El string vendrá tal como así: 0\n12345. Entonces pues lo procesamos
+
+                        int cambioCents = 0; // Cambio neto de la compra en CENTIMOS
+                        int testInt = 0; // Para convertir de ASCII a binario
+                        int contador = 0; // Contador para mults
+                        int mults [5] = {10000, 1000, 100, 10, 1};
+
+                        for (int i = 2 ; i <= 6 ; i++) {
+                            testInt = cambioUSART[i] - '0';
+
+                            cambioCents = cambioCents + (testInt * mults[contador]);
+
+                            contador = contador + 1;
+                        }
+
+                        float cambioFinal = cambioCents / 100.0f;
+
+                        printf(BG_GREEN BOLD "\n\n[OK] COMPRA ACEPTADA CON ÉXITO\n\n" RESET);
+
+                        printf(RESET BOLD "CAMBIO A RECIBIR:" GREEN BOLD " %.2f EUR\n\n" RESET, cambioFinal);
+
+                    } else {
+                        printf(YELLOW "\n\nRespuesta en bruto del STM32:\n" RESET);
+                        printf("%s\n", cambioUSART);
+                    }
+                    printf(BG_BLUE "                                                         " RESET);
 
                     getchar();
                     system("cls");
